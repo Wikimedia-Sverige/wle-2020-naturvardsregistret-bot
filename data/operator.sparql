@@ -1,0 +1,4 @@
+SELECT ?item ?itemLabel
+WHERE {
+  ?item rdfs:label "Länsstyrelsen i Hallands län"@sv.
+} limit 2

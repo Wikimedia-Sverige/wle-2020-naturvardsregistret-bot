@@ -1,0 +1,3 @@
+Hudikvsvalls kommun
+{ "type": "Feature", "properties": { "NVRID": "2004477", "NAMN": "Tall", "SKYDDSTYP": "Naturminne", "BESLSTATUS": "Gällande", "URSBESLDAT": "1998\/10\/20", "IKRAFTDATF": null, "URSGALLDAT": "1998\/11\/15", "SENGALLDAT": "1998\/11\/15", "TILLSYNSMH": null, "PROVNMHDIS": null, "PROVNMHTIL": null, "LAN": "Gävleborgs Län", "KOMMUN": "Hudiksvall", "IUCNKAT": null, "FORVALTARE": "Hudikvsvalls kommun", "AREA_HA": 0.0, "LAND_HA": 0.0, "VATTEN_HA": 0.0, "SKOG_HA": 0.0, "GEOSTATUS": "Ospecificerad", "DIARIENR": "231-156-96,84", "LAGRUM": "Miljöbalken", "BESLMYND": "Länsstyrelse" }, "geometry": { "type": "MultiPoint", "coordinates": [ [ 17.282865430873152, 61.685748202892682 ] ] } },
+
