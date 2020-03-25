@@ -73,7 +73,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       }
 
       for (Coordinate coordinate : jtsMultiPoint.getCoordinates()) {
-        // allow 5m diff
+        // allow 1m diff
         processSingleCoordinateLocation(0.001d, bot.getGeometryFactory().createPoint(coordinate));
       }
 
@@ -159,7 +159,6 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
 
   private void processSingleCoordinateLocation(double coordinateLocationKilometerLeaniency, org.locationtech.jts.geom.Point point) {
     GlobeCoordinatesValue coordinateLocationValue = coordinateLocationValueFactory(point);
-
     Statement existingCoordinateLocation = bot.getWikiData().findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), bot.getWikiData().property("coordinate location"));
     if (existingCoordinateLocation == null) {
       addStatements.add(coordinateLocationStatementFactory(coordinateLocationValue));
@@ -168,15 +167,14 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       GlobeCoordinatesValue existingCoordinate = (GlobeCoordinatesValue) existingCoordinateLocation.getValue();
       double kmDistanceBetweenExistingAndLocalCoordinate = ArcDistance.arcDistance(existingCoordinate, coordinateLocationValue);
       if (kmDistanceBetweenExistingAndLocalCoordinate > coordinateLocationKilometerLeaniency) {
-        // todo really not remove the old one?
+        // remove the old coordinate
+        deleteStatements.add(existingCoordinateLocation);
         log.debug("Will add a new coordinate location. Local data coordinate is {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
         addStatements.add(coordinateLocationStatementFactory(coordinateLocationValue));
       } else {
         log.debug("Will not add new coordinate location. Local data coordinate is only {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
       }
     }
-
-
   }
 
   private Statement coordinateLocationStatementFactory(GlobeCoordinatesValue coordinatesValue) {
