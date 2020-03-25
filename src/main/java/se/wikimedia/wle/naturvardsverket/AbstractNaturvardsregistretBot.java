@@ -182,6 +182,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     NaturvardsregistretObject naturvardsregistretObject = new NaturvardsregistretObject();
     naturvardsregistretObject.setFeature(feature);
 
+    // todo this need to be updated with new data!
     naturvardsregistretObject.setPublishedDate(LocalDate.parse("2020-02-25"));
     naturvardsregistretObject.setRetrievedDate(LocalDate.parse("2020-02-25"));
 
