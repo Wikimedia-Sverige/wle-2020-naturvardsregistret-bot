@@ -2,31 +2,14 @@ package se.wikimedia.wle.naturvardsverket;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import lombok.Getter;
 import lombok.Setter;
 import net.sourceforge.jwbf.core.actions.HttpActionClient;
 import net.sourceforge.jwbf.mediawiki.bots.MediaWikiBot;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Polygon;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.wikidata.wdtk.datamodel.helpers.Datamodel;
-import org.wikidata.wdtk.datamodel.implementation.EntityIdValueImpl;
-import org.wikidata.wdtk.datamodel.interfaces.EntityDocument;
-import org.wikidata.wdtk.datamodel.interfaces.EntityIdValue;
-import org.wikidata.wdtk.datamodel.interfaces.LabeledStatementDocument;
-import org.wikidata.wdtk.wikibaseapi.ApiConnection;
-import org.wikidata.wdtk.wikibaseapi.BasicApiConnection;
-import org.wikidata.wdtk.wikibaseapi.WikibaseDataEditor;
-import org.wikidata.wdtk.wikibaseapi.WikibaseDataFetcher;
-import org.wikidata.wdtk.wikibaseapi.apierrors.MediaWikiApiErrorException;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -47,6 +30,9 @@ public abstract class AbstractBot {
   @Setter
   private boolean dryRun = true;
 
+  @Getter
+  @Setter
+  private boolean downloadReferencedWikiDataEntityIdValues = true;
 
   private String username;
   private String password;
@@ -110,6 +96,7 @@ public abstract class AbstractBot {
     wikiBot.login(username, password);
 
     wikiData = new WikiData(userAgent, userAgentVersion, emailAddress, username, password);
+    wikiData.setDefaultRequireEntityIdValue(downloadReferencedWikiDataEntityIdValues);
     wikiData.open();
 
 
@@ -117,6 +104,9 @@ public abstract class AbstractBot {
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     geometryFactory = new GeometryFactory();
+
+    log.info("Opened bot {} using WikiMedia account {} <mailto:{}>", getClass().getSimpleName(), getUsername(), getEmailAddress());
+
   }
 
   public void close() throws Exception {

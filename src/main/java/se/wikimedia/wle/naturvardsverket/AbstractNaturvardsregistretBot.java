@@ -1,6 +1,8 @@
 package se.wikimedia.wle.naturvardsverket;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import lombok.Getter;
+import lombok.Setter;
 import org.geojson.Feature;
 import org.geojson.FeatureCollection;
 import org.slf4j.Logger;
@@ -10,6 +12,7 @@ import org.wikidata.wdtk.datamodel.helpers.ReferenceBuilder;
 import org.wikidata.wdtk.datamodel.helpers.StatementBuilder;
 import org.wikidata.wdtk.datamodel.implementation.QuantityValueImpl;
 import org.wikidata.wdtk.datamodel.implementation.StringValueImpl;
+import org.wikidata.wdtk.datamodel.implementation.ValueSnakImpl;
 import org.wikidata.wdtk.datamodel.interfaces.*;
 import org.wikidata.wdtk.wikibaseapi.apierrors.MediaWikiApiErrorException;
 
@@ -69,16 +72,16 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       log.info("Processing {}", file.getAbsolutePath());
       FeatureCollection featureCollection = getObjectMapper().readValue(file, FeatureCollection.class);
 
-      log.info("Ensure that we are aware of all WikiData references");
+      log.info("Ensure that we are aware of all WikiData operator references");
       for (Feature feature : featureCollection.getFeatures()) {
         String operator = (String) feature.getProperties().get("FORVALTARE");
         if (operatorsByNvrProperty.get(operator) == null) {
           String operatorId = wikiData.findSingleObjectByUniqueLabel(operator, "sv");
           if (operatorId != null) {
             operatorsByNvrProperty.put(operator, getWikiData().getEntityIdValue(operatorId, true));
-            log.warn("Operator '{}' was resolved using unique label at WikiData as {}", operator, operatorId);
+            log.info("Operator '{}' was resolved using unique label at WikiData as {}", operator, operatorId);
           } else {
-            log.error("Operator '{}' is an unknown WikiData object for us.", operator);
+            log.warn("Operator '{}' is an unknown WikiData object for us. The NVRID using this will not be handled in regard with operator claims.", operator);
           }
         }
       }
@@ -224,14 +227,12 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
           addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
               .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("instance of"))
               .withValue(getWikiData().entity("nature reserve"))
-              .withReference(naturvardsregistretReferenceFactory(naturvardsregistretObject))
           ).build());
       builder.withStatement(
           addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
               .forSubjectAndProperty(ItemIdValue.NULL,
                   getWikiData().property("nvrid"))
               .withValue(new StringValueImpl(naturvardsregistretObject.getNvrid()))
-              .withReference(naturvardsregistretReferenceFactory(naturvardsregistretObject))
           ).build());
       if (!isDryRun()) {
         naturvardsregistretObject.setWikiDataItem(getWikiData().getDataEditor().createItemDocument(
@@ -316,7 +317,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     // inception date
     Statement existingInceptionDate = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("inception date"));
     if (existingInceptionDate == null
-        || (!existingInceptionDate.getValue().equals(inceptionDateValueFactory(naturvardsregistretObject)))) {
+        || (!wikiData.toLocalDateTime((TimeValue)existingInceptionDate.getValue()).equals(wikiData.toLocalDateTime(inceptionDateValueFactory(naturvardsregistretObject))))) {
       addStatements.add(inceptionDateStatementFactory(naturvardsregistretObject));
     }
 
@@ -385,7 +386,6 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       addStatements.add(areaForestStatementFactory(naturvardsregistretObject));
     }
 
-
     Statement existingBodyOfWaterArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("body of water"));
     if (existingBodyOfWaterArea == null
         || !existingBodyOfWaterArea.getValue().equals(areaBodyOfWaterValueFactory(naturvardsregistretObject))) {
@@ -423,10 +423,12 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       NaturvardsregistretObject naturvardsregistretObject,
       StatementBuilder statementBuilder
   ) {
-    statementBuilder.withReference(naturvardsregistretReferenceFactory(naturvardsregistretObject));
-    statementBuilder.withReference(retrievedReferenceFactory(naturvardsregistretObject));
-    statementBuilder.withReference(publishedReferenceFactory(naturvardsregistretObject));
-    statementBuilder.withReference(statedInReferenceFactory(naturvardsregistretObject));
+    ReferenceBuilder referenceBuilder = ReferenceBuilder.newInstance();
+    naturvardsregistretReferenceFactory(referenceBuilder, naturvardsregistretObject);
+    retrievedReferenceFactory(referenceBuilder, naturvardsregistretObject);
+    publishedReferenceFactory(referenceBuilder, naturvardsregistretObject);
+    statedInReferenceFactory(referenceBuilder, naturvardsregistretObject);
+    statementBuilder.withReference(referenceBuilder.build());
     return statementBuilder;
   }
 
@@ -449,12 +451,26 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
   private TimeValue inceptionDateValueFactory(NaturvardsregistretObject naturvardsregistretObject) {
     // todo I think inception date should be either IKRAFTDAT or if null URSGALLDAT or if null URBESLDAT, but historically we used URSBESLDAT
 
-    String inceptionDateString = naturvardsregistretObject.getFeature().getProperty("IKRAFTDAT");
-    if (inceptionDateString == null) {
-      inceptionDateString = naturvardsregistretObject.getFeature().getProperty("URSGALLDAT");
-    }
-    if (inceptionDateString == null) {
+    boolean iAmRightAboutThis = false;
+
+    String inceptionDateString;
+    if (iAmRightAboutThis) {
+      inceptionDateString = naturvardsregistretObject.getFeature().getProperty("IKRAFTDAT");
+      if (inceptionDateString == null) {
+        inceptionDateString = naturvardsregistretObject.getFeature().getProperty("URSGALLDAT");
+      }
+      if (inceptionDateString == null) {
+        inceptionDateString = naturvardsregistretObject.getFeature().getProperty("URSBESLDAT");
+      }
+    } else {
       inceptionDateString = naturvardsregistretObject.getFeature().getProperty("URSBESLDAT");
+      if (inceptionDateString == null) {
+        inceptionDateString = naturvardsregistretObject.getFeature().getProperty("URSGALLDAT");
+      }
+      if (inceptionDateString == null) {
+        inceptionDateString = naturvardsregistretObject.getFeature().getProperty("IKRAFTDAT");
+      }
+
     }
     if (inceptionDateString == null) {
       throw new RuntimeException("No candidates for inception date found!");
@@ -500,6 +516,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     return addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
         .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("area"))
         .withValue(areaForestValueFactory(naturvardsregistretObject))
+        .withQualifier(new ValueSnakImpl(getWikiData().property("applies to part"), getWikiData().entity("forest")))
     ).build();
   }
 
@@ -511,6 +528,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     return addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
         .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("area"))
         .withValue(areaLandValueFactory(naturvardsregistretObject))
+        .withQualifier(new ValueSnakImpl(getWikiData().property("applies to part"), getWikiData().entity("land")))
     ).build();
   }
 
@@ -522,6 +540,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     return addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
         .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("area"))
         .withValue(areaBodyOfWaterValueFactory(naturvardsregistretObject))
+        .withQualifier(new ValueSnakImpl(getWikiData().property("applies to part"), getWikiData().entity("body of water")))
     ).build();
   }
 
@@ -529,30 +548,21 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     return areaValueFactory(naturvardsregistretObject, "VATTEN_HA");
   }
 
-  private Reference naturvardsregistretReferenceFactory(NaturvardsregistretObject naturvardsregistretObject) {
-    return ReferenceBuilder.newInstance()
-        .withPropertyValue(getWikiData().property("reference URL"), new StringValueImpl(
-            "http://nvpub.vic-metria.nu/naturvardsregistret/rest/omrade/" + naturvardsregistretObject.getNvrid() + "/G%C3%A4llande"))
-        .build();
+  private void naturvardsregistretReferenceFactory(ReferenceBuilder referenceBuilder, NaturvardsregistretObject naturvardsregistretObject) {
+    referenceBuilder.withPropertyValue(getWikiData().property("reference URL"), new StringValueImpl(
+            "http://nvpub.vic-metria.nu/naturvardsregistret/rest/omrade/" + naturvardsregistretObject.getNvrid() + "/G%C3%A4llande"));
   }
 
-  private Reference retrievedReferenceFactory(NaturvardsregistretObject naturvardsregistretObject) {
-    return ReferenceBuilder.newInstance()
-        .withPropertyValue(getWikiData().property("retrieved"), wikiData.toTimeValue(naturvardsregistretObject.getRetrievedDate()))
-        .build();
+  private void retrievedReferenceFactory(ReferenceBuilder referenceBuilder, NaturvardsregistretObject naturvardsregistretObject) {
+    referenceBuilder.withPropertyValue(getWikiData().property("retrieved"), wikiData.toTimeValue(naturvardsregistretObject.getRetrievedDate()));
   }
 
-  private Reference publishedReferenceFactory(NaturvardsregistretObject naturvardsregistretObject) {
-    return ReferenceBuilder.newInstance()
-        .withPropertyValue(getWikiData().property("publication date"), wikiData.toTimeValue(naturvardsregistretObject.getPublishedDate()))
-        .build();
+  private void publishedReferenceFactory(ReferenceBuilder referenceBuilder, NaturvardsregistretObject naturvardsregistretObject) {
+    referenceBuilder.withPropertyValue(getWikiData().property("publication date"), wikiData.toTimeValue(naturvardsregistretObject.getPublishedDate()));
   }
 
-  private Reference statedInReferenceFactory(NaturvardsregistretObject naturvardsregistretObject) {
-    return ReferenceBuilder.newInstance()
-        .withPropertyValue(getWikiData().property("stated in"), getWikiData().entity("Protected Areas (Nature Reserves)"))
-        .build();
+  private void statedInReferenceFactory(ReferenceBuilder referenceBuilder, NaturvardsregistretObject naturvardsregistretObject) {
+    referenceBuilder.withPropertyValue(getWikiData().property("stated in"), getWikiData().entity("Protected Areas (Nature Reserves)"));
   }
-
 
 }

@@ -396,7 +396,7 @@ public class WikiData {
           .toFormatter();
     } else if (timeValue.getPrecision() == TimeValue.PREC_MONTH) {
       dateTimeFormatter = new DateTimeFormatterBuilder()
-          .appendPattern("yyyy-MM")
+          .appendPattern("yyyy-M")
           .parseDefaulting(ChronoField.DAY_OF_MONTH, 0)
           .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
           .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
@@ -404,25 +404,25 @@ public class WikiData {
           .toFormatter();
     } else if (timeValue.getPrecision() == TimeValue.PREC_DAY) {
       dateTimeFormatter = new DateTimeFormatterBuilder()
-          .appendPattern("yyyy-MM-dd")
+          .appendPattern("yyyy-M-d")
           .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
           .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
           .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
           .toFormatter();
     } else if (timeValue.getPrecision() == TimeValue.PREC_HOUR) {
       dateTimeFormatter = new DateTimeFormatterBuilder()
-          .appendPattern("yyyy-MM-dd HH")
+          .appendPattern("yyyy-M-d H")
           .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
           .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
           .toFormatter();
     } else if (timeValue.getPrecision() == TimeValue.PREC_MINUTE) {
       dateTimeFormatter = new DateTimeFormatterBuilder()
-          .appendPattern("yyyy-MM-dd HH:mm")
+          .appendPattern("yyyy-M-d H:m")
           .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
           .toFormatter();
     } else if (timeValue.getPrecision() >= TimeValue.PREC_SECOND) {
       dateTimeFormatter = new DateTimeFormatterBuilder()
-          .appendPattern("yyyy-MM-dd HH:mm:ss")
+          .appendPattern("yyyy-M-d H:m:s")
           .toFormatter();
     } else {
       throw new RuntimeException("Unsupported time value precision " + timeValue.getPrecision());

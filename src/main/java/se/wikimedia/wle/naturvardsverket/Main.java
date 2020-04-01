@@ -11,8 +11,11 @@ public class Main {
     runBot(new NatureReserveBot());
   }
 
-  private static void runBot(AbstractBot bot) throws Exception {
-    log.info("Executing bot {} using WikiMedia account {} <mailto:{}>", bot.getClass().getSimpleName(), bot.getUsername(), bot.getEmailAddress());
+  private static void runBot(AbstractNaturvardsregistretBot bot) throws Exception {
+    bot.setDryRun(false);
+    bot.setSandbox(false);
+    // todo do ensure when running!
+    bot.setDownloadReferencedWikiDataEntityIdValues(false);
     bot.open();
     try {
       bot.execute();
