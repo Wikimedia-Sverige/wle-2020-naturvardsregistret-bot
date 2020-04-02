@@ -1,6 +1,8 @@
 package se.wikimedia.wle.naturvardsverket;
 
 import org.locationtech.jts.geom.Point;
+import org.wikidata.wdtk.datamodel.interfaces.EntityIdValue;
+import org.wikidata.wdtk.datamodel.interfaces.PropertyIdValue;
 
 import java.io.File;
 

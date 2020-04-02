@@ -1,5 +1,7 @@
 package se.wikimedia.wle.naturvardsverket;
 
+import org.wikidata.wdtk.datamodel.interfaces.EntityIdValue;
+
 import java.io.File;
 
 public class NationalParkBot extends AbstractNaturvardsregistretBot {

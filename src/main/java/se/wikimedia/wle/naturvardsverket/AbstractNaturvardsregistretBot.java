@@ -148,7 +148,6 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     log.info("Initializing WikiData properties...");
 
     getWikiData().getNamedEntities().put("instance of", getWikiData().getEntityIdValue("P31"));
-    getWikiData().getNamedEntities().put("nature reserve", getWikiData().getEntityIdValue("Q179049"));
 
     getWikiData().getNamedEntities().put("inception date", getWikiData().getEntityIdValue("P571"));
 
@@ -261,7 +260,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       builder.withStatement(
           addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
               .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("instance of"))
-              .withValue(getWikiData().entity("nature reserve"))
+              .withValue(wikiData.entity(getNaturvardsregistretObjectTypeEntityId()))
           ).build());
       builder.withStatement(
           addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
