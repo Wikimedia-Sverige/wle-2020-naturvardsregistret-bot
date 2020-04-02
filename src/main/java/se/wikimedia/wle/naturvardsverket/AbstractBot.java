@@ -2,6 +2,7 @@ package se.wikimedia.wle.naturvardsverket;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.Getter;
 import lombok.Setter;
 import net.sourceforge.jwbf.core.actions.HttpActionClient;
@@ -101,7 +102,8 @@ public abstract class AbstractBot {
 
 
     objectMapper = new ObjectMapper()
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .enable(SerializationFeature.INDENT_OUTPUT);
 
     geometryFactory = new GeometryFactory();
 

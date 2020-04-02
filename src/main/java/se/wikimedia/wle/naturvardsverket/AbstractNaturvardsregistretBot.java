@@ -109,8 +109,9 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
           continue;
         }
 
-        if (progress.getProcessed().containsKey(nvrid)) {
-          log.info("{} is listed in progress and will be skipped", nvrid);
+        progressEntity = progress.getProcessed().get(nvrid);
+        if (progressEntity != null && progressEntity.getError() == null) {
+          log.info("{} is listed in progress without error. Will be skipped", nvrid);
         } else {
           // process
           try {
@@ -127,11 +128,12 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
             log.error("Caught exception", e);
           }
           progressEntity.setEpochEnded(System.currentTimeMillis());
+          progress.add(progressEntity);
           getObjectMapper().writeValue(progressFile, progress);
+          System.currentTimeMillis();
         }
       }
 
-      log.info("Done. Statistics:\n{}", progressEntity.toString());
     }
 
   }
@@ -410,31 +412,47 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     // area
 
     Statement existingArea = wikiData.findStatementWithoutQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"));
-    if (existingArea == null
-        || !existingArea.getValue().equals(areaValueFactory(naturvardsregistretObject))) {
+    boolean existingAreaHasDelta = existingArea != null && !existingArea.getValue().equals(areaValueFactory(naturvardsregistretObject));
+    if (existingArea == null || existingAreaHasDelta) {
       addStatements.add(areaStatementFactory(naturvardsregistretObject));
       progressEntity.getCreatedClaims().add("area");
+      if (existingAreaHasDelta) {
+        deleteStatements.add(existingArea);
+        progressEntity.getDeletedClaims().add("area");
+      }
     }
 
     Statement existingLandArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("land"));
-    if (existingLandArea == null
-        || !existingLandArea.getValue().equals(areaLandValueFactory(naturvardsregistretObject))) {
+    boolean existingLandAreaHasDelta = existingArea != null && !existingLandArea.getValue().equals(areaLandValueFactory(naturvardsregistretObject));
+    if (existingLandArea == null || existingLandAreaHasDelta) {
       addStatements.add(areaLandStatementFactory(naturvardsregistretObject));
       progressEntity.getCreatedClaims().add("area land");
+      if (existingLandAreaHasDelta) {
+        deleteStatements.add(existingLandArea);
+        progressEntity.getDeletedClaims().add("area land");
+      }
     }
 
     Statement existingForestArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("forest"));
-    if (existingForestArea == null
-        || !existingForestArea.getValue().equals(areaForestValueFactory(naturvardsregistretObject))) {
+    boolean existingForestAreaHasDelta = existingForestArea != null && !existingForestArea.getValue().equals(areaForestValueFactory(naturvardsregistretObject));
+    if (existingForestArea == null || existingForestAreaHasDelta) {
       addStatements.add(areaForestStatementFactory(naturvardsregistretObject));
       progressEntity.getCreatedClaims().add("area forest");
+      if (existingForestAreaHasDelta) {
+        deleteStatements.add(existingForestArea);
+        progressEntity.getDeletedClaims().add("area forest");
+      }
     }
 
     Statement existingBodyOfWaterArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("body of water"));
-    if (existingBodyOfWaterArea == null
-        || !existingBodyOfWaterArea.getValue().equals(areaBodyOfWaterValueFactory(naturvardsregistretObject))) {
+    boolean exitingBodyOfWaterAreaHasDelta = existingBodyOfWaterArea != null && !existingBodyOfWaterArea.getValue().equals(areaBodyOfWaterValueFactory(naturvardsregistretObject));
+    if (existingBodyOfWaterArea == null || exitingBodyOfWaterAreaHasDelta) {
       addStatements.add(areaBodyOfWaterStatementFactory(naturvardsregistretObject));
       progressEntity.getCreatedClaims().add("area water");
+      if (exitingBodyOfWaterAreaHasDelta) {
+        deleteStatements.add(existingBodyOfWaterArea);
+        progressEntity.getDeletedClaims().add("area water");
+      }
     }
 
     System.currentTimeMillis();
