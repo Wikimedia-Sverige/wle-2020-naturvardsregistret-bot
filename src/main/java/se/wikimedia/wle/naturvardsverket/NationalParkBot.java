@@ -14,6 +14,17 @@ public class NationalParkBot extends AbstractNaturvardsregistretBot {
     }
   }
 
+  private String[] commonsArticleCategories = new String[]{
+      "Map data of Sweden",
+      "Map data of protected areas of Sweden",
+      "Map data of national parks of Sweden"
+  };
+
+  @Override
+  public String[] getCommonsArticleCategories() {
+    return commonsArticleCategories;
+  }
+
   @Override
   protected String getNaturvardsregistretObjectTypeSourceUrl() {
     return "https://metadatakatalogen.naturvardsverket.se/metadatakatalogen/GetMetaDataById?id=bfc33845-ffb9-4835-8355-76af3773d4e0";

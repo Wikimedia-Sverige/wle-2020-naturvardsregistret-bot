@@ -16,6 +16,17 @@ public class NatureReserveBot extends AbstractNaturvardsregistretBot {
     }
   }
 
+  private String[] commonsArticleCategories = new String[]{
+      "Map data of Sweden",
+      "Map data of protected areas of Sweden",
+      "Map data of nature reserves of Sweden"
+  };
+
+  @Override
+  public String[] getCommonsArticleCategories() {
+    return commonsArticleCategories;
+  }
+
   @Override
   protected String getNaturvardsregistretObjectTypeSourceUrl() {
     return "https://metadatakatalogen.naturvardsverket.se/metadatakatalogen/GetMetaDataById?id=2921b01a-0baf-4702-a89f-9c5626c97844";

@@ -2,7 +2,6 @@ package se.wikimedia.wle.naturvardsverket;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import lombok.Getter;
-import lombok.Setter;
 import org.geojson.Feature;
 import org.geojson.FeatureCollection;
 import org.slf4j.Logger;
@@ -16,8 +15,7 @@ import org.wikidata.wdtk.datamodel.implementation.ValueSnakImpl;
 import org.wikidata.wdtk.datamodel.interfaces.*;
 import org.wikidata.wdtk.wikibaseapi.apierrors.MediaWikiApiErrorException;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +25,10 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
   private Logger log = LoggerFactory.getLogger(getClass());
 
+  public abstract String[] getCommonsArticleCategories();
+
+  @Getter
+  private Progress.Entity progressEntity;
 
   public AbstractNaturvardsregistretBot() {
     super("Naturvardsregistret_bot", "0.1");
@@ -63,6 +65,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     return naturvardsregistretEntityType == WikiData.NULL_ENTITY ? null : naturvardsregistretEntityType;
   }
 
+
   @Override
   protected void execute() throws Exception {
 
@@ -86,13 +89,49 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
         }
       }
 
+      Progress progress;
+      File progressFile = new File("data/progress/" + getClass().getSimpleName() + ".json");
+      if (progressFile.exists()) {
+        progress = getObjectMapper().readValue(progressFile, Progress.class);
+        log.info("Loaded progress from {} with {} previously processed items.", progressFile.getAbsolutePath(), progress.getProcessed().size());
+      } else {
+        progress = new Progress();
+      }
+
       log.info("Processing entities...");
       for (Feature feature : featureCollection.getFeatures()) {
         // filter out null value properties
         feature.getProperties().entrySet().removeIf(property -> property.getValue() == null);
-        // process
-        process(feature);
+
+        String nvrid = (String) feature.getProperty("NVRID");
+        if (nvrid == null) {
+          log.error("NVRID missing in {}", getObjectMapper().writeValueAsString(feature));
+          continue;
+        }
+
+        if (progress.getProcessed().containsKey(nvrid)) {
+          log.info("{} is listed in progress and will be skipped", nvrid);
+        } else {
+          // process
+          try {
+            progressEntity = new Progress.Entity();
+            progressEntity.setEpochStarted(System.currentTimeMillis());
+            progressEntity.setNvrid(nvrid);
+            process(feature);
+          } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            pw.flush();
+            progressEntity.setError(sw.toString());
+            log.error("Caught exception", e);
+          }
+          progressEntity.setEpochEnded(System.currentTimeMillis());
+          getObjectMapper().writeValue(progressFile, progress);
+        }
       }
+
+      log.info("Done. Statistics:\n{}", progressEntity.toString());
     }
 
   }
@@ -101,7 +140,6 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
 
   private Map<String, EntityIdValue> operatorsByNvrProperty = new HashMap<>();
-
 
 
   private void initializeWikiData() throws MediaWikiApiErrorException, IOException {
@@ -159,27 +197,27 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     getWikiData().getNamedEntities().put("publication date", getWikiData().getEntityIdValue("P577"));
 
 
-
-      log.info("Loading operators...");
-      {
-        ArrayNode forvaltare = getObjectMapper().readValue(new File("data/forvaltare.json"), ArrayNode.class);
-        for (int i = 0; i < forvaltare.size(); i++) {
-          operatorsByNvrProperty.put(forvaltare.get(i).get("sv").textValue(), wikiData.getEntityIdValue(forvaltare.get(i).get("item").textValue()));
-        }
+    log.info("Loading operators...");
+    {
+      ArrayNode forvaltare = getObjectMapper().readValue(new File("data/forvaltare.json"), ArrayNode.class);
+      for (int i = 0; i < forvaltare.size(); i++) {
+        operatorsByNvrProperty.put(forvaltare.get(i).get("sv").textValue(), wikiData.getEntityIdValue(forvaltare.get(i).get("item").textValue()));
       }
-      {
-        ArrayNode municipality = getObjectMapper().readValue(new File("data/municipalities.json"), ArrayNode.class);
-        for (int i = 0; i < municipality.size(); i++) {
-          operatorsByNvrProperty.put(municipality.get(i).get("sv").textValue(), wikiData.getEntityIdValue(municipality.get(i).get("item").textValue()));
-        }
+    }
+    {
+      ArrayNode municipality = getObjectMapper().readValue(new File("data/municipalities.json"), ArrayNode.class);
+      for (int i = 0; i < municipality.size(); i++) {
+        operatorsByNvrProperty.put(municipality.get(i).get("sv").textValue(), wikiData.getEntityIdValue(municipality.get(i).get("item").textValue()));
       }
+    }
 
 
   }
 
   private void process(Feature feature) throws Exception {
 
-    log.info("Processing {}", (String) feature.getProperty("NVRID"));
+    String nvrid = (String) feature.getProperty("NVRID");
+    log.info("Processing {}", nvrid);
 
     // create object
     NaturvardsregistretObject naturvardsregistretObject = new NaturvardsregistretObject();
@@ -189,13 +227,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     naturvardsregistretObject.setPublishedDate(LocalDate.parse("2020-02-25"));
     naturvardsregistretObject.setRetrievedDate(LocalDate.parse("2020-02-25"));
 
-    naturvardsregistretObject.setNvrid(feature.getProperty("NVRID"));
+    naturvardsregistretObject.setNvrid(nvrid);
     naturvardsregistretObject.setName(feature.getProperty("NAMN"));
-
-    if (naturvardsregistretObject.getNvrid() == null) {
-      log.warn("NVRID property missing in feature {}", getObjectMapper().writeValueAsString(feature));
-      return;
-    }
 
 
 /*
@@ -219,7 +252,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
         + naturvardsregistretObject.getNvrid() + "\")) SERVICE wikibase:label { bd:serviceParam wikibase:language \"[AUTO_LANGUAGE],en\". }} LIMIT 2";
 
     naturvardsregistretObject.setWikiDataObjectKey(wikiData.getSingleObject(sparqlQuery));
-    ;
+
     if (naturvardsregistretObject.getWikiDataObjectKey() == null) {
       log.debug("Creating new WikiData item as there is none describing nvrid {}", naturvardsregistretObject.getNvrid());
       ItemDocumentBuilder builder = ItemDocumentBuilder.forItemId(ItemIdValue.NULL);
@@ -240,9 +273,9 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
             "Created by bot from data supplied by Naturvårdsverket",
             null
         ));
+        progressEntity.setCreatedWikidata(true);
         log.info("Committed new fairly empty item {} to WikiData", naturvardsregistretObject.getWikiDataItem().getEntityId().getId());
       } else {
-        // todo this might cause errors
         naturvardsregistretObject.setWikiDataItem(builder.build());
       }
 
@@ -250,6 +283,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       log.debug("WikiData item {} is describing nvrid {}", naturvardsregistretObject.getWikiDataObjectKey(), naturvardsregistretObject.getNvrid());
       naturvardsregistretObject.setWikiDataItem((ItemDocument) getWikiData().getDataFetcher().getEntityDocument(naturvardsregistretObject.getWikiDataObjectKey()));
     }
+
+    progressEntity.setWikidataIdentity(naturvardsregistretObject.getWikiDataObjectKey());
 
 /*
     ███████╗██╗   ██╗ █████╗ ██╗     ██╗   ██╗ █████╗ ████████╗███████╗    ██████╗ ███████╗██╗  ████████╗ █████╗
@@ -303,6 +338,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
         log.info("Committed statements diff to WikiData.");
       }
+
     } else {
       log.debug("No statements has been updated.");
     }
@@ -317,8 +353,9 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     // inception date
     Statement existingInceptionDate = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("inception date"));
     if (existingInceptionDate == null
-        || (!wikiData.toLocalDateTime((TimeValue)existingInceptionDate.getValue()).equals(wikiData.toLocalDateTime(inceptionDateValueFactory(naturvardsregistretObject))))) {
+        || (!wikiData.toLocalDateTime((TimeValue) existingInceptionDate.getValue()).equals(wikiData.toLocalDateTime(inceptionDateValueFactory(naturvardsregistretObject))))) {
       addStatements.add(inceptionDateStatementFactory(naturvardsregistretObject));
+      progressEntity.getCreatedClaims().add("inception date");
     }
 
     // iunc cateogory
@@ -338,6 +375,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
             || ((iuncCategory != WikiData.NULL_ENTITY_VALUE || existingIuncCategory.getValue() != null)
             && !iuncCategory.equals(existingIuncCategory.getValue()))) {
           addStatements.add(iuncCategoryStatementFactory(iuncCategory, naturvardsregistretObject));
+          progressEntity.getCreatedClaims().add("iunc category");
         }
       }
     }
@@ -347,17 +385,20 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     if (existingCountry == null
         || (!existingCountry.getValue().equals(getWikiData().entity("Sweden")))) {
       addStatements.add(countryStatementFactory(naturvardsregistretObject));
+      progressEntity.getCreatedClaims().add("country");
     }
 
     // operator
     naturvardsregistretObject.setOperatorWikiDataItem(operatorsByNvrProperty.get((String) naturvardsregistretObject.getFeature().getProperty("FORVALTARE")));
     if (naturvardsregistretObject.getOperatorWikiDataItem() == null) {
       log.warn("Unable to lookup operator Q for '{}' Operator claims will not be touched.", (String) naturvardsregistretObject.getFeature().getProperty("FORVALTARE"));
+      // todo warning in progress
     } else {
       Statement existingOperator = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("operator"));
       if (existingOperator == null
           || !existingOperator.getValue().equals(naturvardsregistretObject.getOperatorWikiDataItem())) {
         addStatements.add(operatorStatementFactory(naturvardsregistretObject));
+        progressEntity.getCreatedClaims().add("operator");
       }
     }
 
@@ -372,24 +413,28 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     if (existingArea == null
         || !existingArea.getValue().equals(areaValueFactory(naturvardsregistretObject))) {
       addStatements.add(areaStatementFactory(naturvardsregistretObject));
+      progressEntity.getCreatedClaims().add("area");
     }
 
     Statement existingLandArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("land"));
     if (existingLandArea == null
         || !existingLandArea.getValue().equals(areaLandValueFactory(naturvardsregistretObject))) {
       addStatements.add(areaLandStatementFactory(naturvardsregistretObject));
+      progressEntity.getCreatedClaims().add("area land");
     }
 
     Statement existingForestArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("forest"));
     if (existingForestArea == null
         || !existingForestArea.getValue().equals(areaForestValueFactory(naturvardsregistretObject))) {
       addStatements.add(areaForestStatementFactory(naturvardsregistretObject));
+      progressEntity.getCreatedClaims().add("area forest");
     }
 
     Statement existingBodyOfWaterArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("body of water"));
     if (existingBodyOfWaterArea == null
         || !existingBodyOfWaterArea.getValue().equals(areaBodyOfWaterValueFactory(naturvardsregistretObject))) {
       addStatements.add(areaBodyOfWaterStatementFactory(naturvardsregistretObject));
+      progressEntity.getCreatedClaims().add("area water");
     }
 
     System.currentTimeMillis();
@@ -550,7 +595,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
   private void naturvardsregistretReferenceFactory(ReferenceBuilder referenceBuilder, NaturvardsregistretObject naturvardsregistretObject) {
     referenceBuilder.withPropertyValue(getWikiData().property("reference URL"), new StringValueImpl(
-            "http://nvpub.vic-metria.nu/naturvardsregistret/rest/omrade/" + naturvardsregistretObject.getNvrid() + "/G%C3%A4llande"));
+        "http://nvpub.vic-metria.nu/naturvardsregistret/rest/omrade/" + naturvardsregistretObject.getNvrid() + "/G%C3%A4llande"));
   }
 
   private void retrievedReferenceFactory(ReferenceBuilder referenceBuilder, NaturvardsregistretObject naturvardsregistretObject) {

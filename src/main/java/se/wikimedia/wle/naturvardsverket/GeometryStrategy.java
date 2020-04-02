@@ -97,7 +97,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       // allow 100 meter diff
       processSingleCoordinateLocation(0.1d, centroid);
 
-      if (!jtsPolygon.contains(centroid)) {
+      if (!jtsPolygon.intersects(centroid)) {
         throw new RuntimeException("Centroid is not inside of the polygon!");
       }
 
@@ -119,10 +119,6 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
 
       // allow 100 meter diff
       processSingleCoordinateLocation(0.1d, centroid);
-
-      if (!jtsMultiPolygon.contains(centroid)) {
-        throw new RuntimeException("Centroid is not inside of the polygon!");
-      }
 
       createOrPossiblyUpdateCommonGeoshapeArticle(naturvardsregistretObject, jtsMultiPolygon, centroid);
       return true;
@@ -169,8 +165,10 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       if (kmDistanceBetweenExistingAndLocalCoordinate > coordinateLocationKilometerLeaniency) {
         // remove the old coordinate
         deleteStatements.add(existingCoordinateLocation);
+        bot.getProgressEntity().getDeletedClaims().add("coordinate");
         log.debug("Will add a new coordinate location. Local data coordinate is {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
         addStatements.add(coordinateLocationStatementFactory(coordinateLocationValue));
+        bot.getProgressEntity().getCreatedClaims().add("coordinate");
       } else {
         log.debug("Will not add new coordinate location. Local data coordinate is only {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
       }
@@ -246,6 +244,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
           log.debug("Current Commons geoshape article is not up to date.");
           createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
           addStatements.add(geoshapeStatementFactory(naturvardsregistretObject, commonsGeoshapeArticleName));
+          bot.getProgressEntity().getCreatedClaims().add("geoshape");
         } else {
           log.debug("Current Commons geoshape article is up to date. No need to update.");
         }
@@ -253,6 +252,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
     } else {
       createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
       addStatements.add(geoshapeStatementFactory(naturvardsregistretObject, commonsGeoshapeArticleName));
+      bot.getProgressEntity().getCreatedClaims().add("geoshape");
     }
   }
 
@@ -262,6 +262,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       String commonsGeoshapeArticleName
   ) {
 
+    log.trace("Handle geoshape article in Commons");
     Article commonsGeoShapeArticle = bot.getWikiBot().getArticle(commonsGeoshapeArticleName);
     if (commonsGeoShapeArticle.getRevisionId().isEmpty()) {
       log.debug("Creating new Commons article {}", commonsGeoshapeArticleName);
@@ -271,6 +272,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
         commonsGeoShapeArticle.save();
         log.info("Committed new Commons article {}", commonsGeoshapeArticleName);
       }
+      bot.getProgressEntity().setCreatedCommonsGeoshape(true);
     } else {
       log.debug("Already existing Commons article {}", commonsGeoshapeArticleName);
       log.debug("Checking for diff between remote and local data...");
@@ -279,9 +281,10 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
         existingCommonsObject = bot.getObjectMapper().readValue(commonsGeoShapeArticle.getText(), ObjectNode.class);
       } catch (Exception ioe) {
         log.warn("Invalid JSON object in Commons article {}", commonsGeoshapeArticleName);
-        return;
+        existingCommonsObject = null;
+        // todo error rather than replace it?! Perhaps at least an alternative commit message in commons?
       }
-      if (existingCommonsObject.equals(commonsGeoshapeObject)) {
+      if (commonsGeoshapeObject.equals(existingCommonsObject)) {
         log.debug("No changes to {}", commonsGeoshapeArticleName);
       } else {
         log.debug("Updating {}", commonsGeoshapeArticleName);
@@ -291,6 +294,45 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
           commonsGeoShapeArticle.save();
           log.info("Committed update of Commons article {}", commonsGeoshapeArticleName);
         }
+        bot.getProgressEntity().setUpdatedCommonsGeoshape(true);
+      }
+    }
+
+
+    log.trace("Handle categories in geoshape discussion page on Commons.");
+    String commonsGeoShapeArticleTalkText;
+    {
+      StringBuilder commonsGeoShapeArticleTalkTextBuilder = new StringBuilder(1024);
+      for (String category : bot.getCommonsArticleCategories()) {
+        commonsGeoShapeArticleTalkTextBuilder.append("[[Category:").append(category).append("]]\n");
+      }
+      commonsGeoShapeArticleTalkText = commonsGeoShapeArticleTalkTextBuilder.toString().trim();
+    }
+
+    String commonsGeoshapeArticleTalkName = commonsGeoshapeArticleName.replaceFirst("Data:", "Data_talk:");
+    Article commonsGeoShapeArticleTalk = bot.getWikiBot().getArticle(commonsGeoshapeArticleTalkName);
+    if (commonsGeoShapeArticleTalk.getRevisionId().isEmpty()) {
+      log.debug("Creating new Commons article {}", commonsGeoshapeArticleTalkName);
+      commonsGeoShapeArticleTalk.setText(commonsGeoShapeArticleTalkText);
+      commonsGeoShapeArticleTalk.setEditSummary("Initial creation using data from Naturvårdsverket.");
+      if (!bot.isDryRun()) {
+        commonsGeoShapeArticleTalk.save();
+        log.info("Committed new Commons article {}", commonsGeoshapeArticleTalkName);
+      }
+
+    } else {
+      // todo this will replace any categories which was added by third parties! actually parse and find delta?
+      if (!commonsGeoShapeArticleTalkText.equals(commonsGeoShapeArticleTalk.getText())) {
+        log.debug("Updating {}", commonsGeoshapeArticleTalkName);
+        commonsGeoShapeArticleTalk.setText(commonsGeoShapeArticleTalkText);
+        commonsGeoShapeArticleTalk.setEditSummary("Updated using data from Naturvårdsverket due to detected difference with local data.");
+        if (!bot.isDryRun()) {
+          commonsGeoShapeArticleTalk.save();
+          log.info("Committed update of Commons article {}", commonsGeoshapeArticleTalkName);
+        }
+
+      } else {
+        log.debug("No changes to {}", commonsGeoshapeArticleTalkName);
       }
     }
   }
