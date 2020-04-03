@@ -9,8 +9,14 @@ create or update entities that differs from NVR.
 ## The code
 
 * Java 11, Maven.
-* Fail-fast. Expects that existing data is structured in a certain way. 
-If not the bot will discontinue. 
+* wdtk-wikibaseapi for Wikidata, plus homegrown code for SPARQL.
+* jwbf for MediaWiki.
+* jts for geodata processing.
+
+Keeps track of progress state. If you abort the bot, it will only process items
+previously already processed only if the previously failed. 
+
+Statistics is kept in the state, with specific information about each entity.
 
 ## Required environment variables
 
@@ -34,8 +40,12 @@ In the future we might want to consider downloading the original shape files
 from these sources, reproject to EPSG:4326 and convert to GeoJSON. This bot
 could then be executed automatically ever so often.
 
-### Important missing features
+### Important notices
 
 * Updating multi point coordinate WikiData item claims, e.g. natural monument
 points. Currently not a problem as they currently do not exist in WikiData and
 will thus only be added.
+
+* Updating categories at commons geoshape discussion page will overwrite any
+categories added by third parties. This is OK for now since we only add, but
+for future imports categories needs to be parsed and checked for delta!

@@ -25,7 +25,6 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
   private Logger log = LoggerFactory.getLogger(getClass());
 
-  public abstract String[] getCommonsArticleCategories();
 
   @Getter
   private Progress.Entity progressEntity;
@@ -47,6 +46,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
    * Q describing e.g. nature reserve, national park, etc
    */
   protected abstract String getNaturvardsregistretObjectTypeEntityId();
+
+  public abstract String[] getCommonsArticleCategories(NaturvardsregistretObject object);
 
   /**
    * E.g. https://metadatakatalogen.naturvardsverket.se/metadatakatalogen/GetMetaDataById?id=2921b01a-0baf-4702-a89f-9c5626c97844

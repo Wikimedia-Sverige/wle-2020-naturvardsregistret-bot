@@ -303,7 +303,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
     String commonsGeoShapeArticleTalkText;
     {
       StringBuilder commonsGeoShapeArticleTalkTextBuilder = new StringBuilder(1024);
-      for (String category : bot.getCommonsArticleCategories()) {
+      for (String category : bot.getCommonsArticleCategories(naturvardsregistretObject)) {
         commonsGeoShapeArticleTalkTextBuilder.append("[[Category:").append(category).append("]]\n");
       }
       commonsGeoShapeArticleTalkText = commonsGeoShapeArticleTalkTextBuilder.toString().trim();
@@ -321,8 +321,9 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       }
 
     } else {
-      // todo this will replace any categories which was added by third parties! actually parse and find delta?
       if (!commonsGeoShapeArticleTalkText.equals(commonsGeoShapeArticleTalk.getText())) {
+        // todo This will replace any categories which was added by third parties!
+        // todo I.e. we need to actually parse and find delta!
         log.debug("Updating {}", commonsGeoshapeArticleTalkName);
         commonsGeoShapeArticleTalk.setText(commonsGeoShapeArticleTalkText);
         commonsGeoShapeArticleTalk.setEditSummary("Updated using data from Naturvårdsverket due to detected difference with local data.");

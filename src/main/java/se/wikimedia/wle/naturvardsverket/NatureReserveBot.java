@@ -18,15 +18,11 @@ public class NatureReserveBot extends AbstractNaturvardsregistretBot {
     }
   }
 
-  private String[] commonsArticleCategories = new String[]{
-      "Map data of Sweden",
-      "Map data of protected areas of Sweden",
-      "Map data of nature reserves of Sweden"
-  };
-
   @Override
-  public String[] getCommonsArticleCategories() {
-    return commonsArticleCategories;
+  public String[] getCommonsArticleCategories(NaturvardsregistretObject object) {
+    return new String[]{
+        "Map data of nature reserves of Sweden|"+object.getName()
+    };
   }
 
   @Override
