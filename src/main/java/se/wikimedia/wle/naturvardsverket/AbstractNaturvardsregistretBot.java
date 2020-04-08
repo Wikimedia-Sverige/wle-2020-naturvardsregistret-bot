@@ -266,7 +266,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       builder.withStatement(
           addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
               .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("instance of"))
-              .withValue(wikiData.entity(getNaturvardsregistretObjectTypeEntityId()))
+              .withValue(wikiData.getEntityIdValue(getNaturvardsregistretObjectTypeEntityId()))
           ).build());
       builder.withStatement(
           addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
@@ -274,12 +274,14 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
                   getWikiData().property("nvrid"))
               .withValue(new StringValueImpl(naturvardsregistretObject.getNvrid()))
           ).build());
+      builder.withLabel(naturvardsregistretObject.getName(), "sv");
       if (!isDryRun()) {
         naturvardsregistretObject.setWikiDataItem(getWikiData().getDataEditor().createItemDocument(
             builder.build(),
             "Created by bot from data supplied by Naturvårdsverket",
             null
         ));
+        naturvardsregistretObject.setWikiDataObjectKey(naturvardsregistretObject.getWikiDataItem().getEntityId().getId());
         progressEntity.setCreatedWikidata(true);
         log.info("Committed new fairly empty item {} to WikiData", naturvardsregistretObject.getWikiDataItem().getEntityId().getId());
       } else {
