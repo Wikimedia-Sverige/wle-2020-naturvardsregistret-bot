@@ -3,8 +3,10 @@ package se.wikimedia.wle.naturvardsverket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Data
 public class Progress {
@@ -43,13 +45,15 @@ public class Progress {
     private Long epochEnded;
 
     private boolean createdWikidata;
-    private boolean updatedWikidata;
 
     private List<String> createdClaims = new ArrayList<>();
+    private List<String> modifiedClaims = new ArrayList<>();
     private List<String> deletedClaims = new ArrayList<>();
 
     private boolean createdCommonsGeoshape;
     private boolean updatedCommonsGeoshape;
+
+    private List<String> warnings = new ArrayList<>();
 
     private String error;
 

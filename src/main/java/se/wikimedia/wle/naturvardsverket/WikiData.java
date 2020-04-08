@@ -11,6 +11,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wikidata.wdtk.datamodel.helpers.Datamodel;
+import org.wikidata.wdtk.datamodel.helpers.StatementBuilder;
 import org.wikidata.wdtk.datamodel.implementation.EntityIdValueImpl;
 import org.wikidata.wdtk.datamodel.implementation.TimeValueImpl;
 import org.wikidata.wdtk.datamodel.interfaces.*;
@@ -66,7 +67,7 @@ public class WikiData {
   @Getter
   private WikibaseDataFetcher dataFetcher;
 
-  private ApiConnection connection;
+  private BasicApiConnection connection;
 
   private Map<String, EntityIdValue> wikiDataProperties = new HashMap<>();
 
@@ -78,7 +79,6 @@ public class WikiData {
     client = HttpClientBuilder.create().setUserAgent(userAgent + "/" + userAgentVersion + "(" + emailAddress + ")").build();
 
     connection = BasicApiConnection.getWikidataApiConnection();
-//    connection = BasicApiConnection.getTestWikidataApiConnection();
     connection.login(username, password);
 
     dataEditor = new WikibaseDataEditor(connection, Datamodel.SITE_WIKIDATA);
@@ -301,6 +301,18 @@ public class WikiData {
     }
   }
 
+  public boolean hasQualifier(Statement statement, PropertyIdValue property) {
+    for (Reference reference : statement.getReferences()) {
+      for (Iterator<Snak> snakIterator = reference.getAllSnaks(); snakIterator.hasNext(); ) {
+        Snak snak = snakIterator.next();
+        if (property.getId().equals(snak.getPropertyId().getId())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   // todo findMostRecentStatementBtUniqueQualifier
   public Statement findStatementByUniqueQualifier(ItemDocument wikiDataItem, PropertyIdValue propertyIdValue, PropertyIdValue qualifierPropertyId, EntityIdValue entityIdValue) {
     StatementGroup statements = wikiDataItem.findStatementGroup(propertyIdValue);
@@ -428,6 +440,23 @@ public class WikiData {
       throw new RuntimeException("Unsupported time value precision " + timeValue.getPrecision());
     }
     return LocalDateTime.parse(sb.toString(), dateTimeFormatter);
+  }
+
+  public StatementBuilder asStatementBuilder(Statement statement) {
+    StatementBuilder statementBuilder = StatementBuilder.forSubjectAndProperty(ItemIdValue.NULL, (PropertyIdValue) statement.getSubject());
+    if (statement.getQualifiers() != null && !statement.getQualifiers().isEmpty()) {
+      statementBuilder.withQualifiers(statement.getQualifiers());
+    }
+    if (statement.getReferences() != null && !statement.getReferences().isEmpty()) {
+      statementBuilder.withReferences(statement.getReferences());
+    }
+    if (statement.getValue() != null) {
+      statementBuilder.withValue(statement.getValue());
+    }
+    if (statement.getRank() != null) {
+      statementBuilder.withRank(statement.getRank());
+    }
+    return statementBuilder;
   }
 
 }

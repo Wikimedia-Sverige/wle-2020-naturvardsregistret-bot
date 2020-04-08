@@ -9,8 +9,8 @@ public class Main {
 
   public static void main(String[] args) throws Exception {
     runBot(new NatureReserveBot());
-    runBot(new NationalParkBot());
-    runBot(new NaturalMonumentBot());
+//    runBot(new NationalParkBot());
+//    runBot(new NaturalMonumentBot());
   }
 
   private static void runBot(AbstractNaturvardsregistretBot bot) throws Exception {

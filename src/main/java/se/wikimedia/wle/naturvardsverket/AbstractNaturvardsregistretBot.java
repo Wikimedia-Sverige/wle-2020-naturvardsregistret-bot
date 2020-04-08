@@ -196,6 +196,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     getWikiData().getNamedEntities().put("stated in", getWikiData().getEntityIdValue("P248"));
     getWikiData().getNamedEntities().put("Protected Areas (Nature Reserves)", getWikiData().getEntityIdValue("Q29580583"));
     getWikiData().getNamedEntities().put("retrieved", getWikiData().getEntityIdValue("P813"));
+    getWikiData().getNamedEntities().put("point in time", getWikiData().getEntityIdValue("P585"));
     getWikiData().getNamedEntities().put("publication date", getWikiData().getEntityIdValue("P577"));
 
 
@@ -371,13 +372,61 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       EntityIdValue iuncCategory = iuncCategories.get(iuncCategoryValue);
       if (iuncCategory == null) {
         log.warn("Unsupported IUNC category in feature: {}", naturvardsregistretObject.getFeature().getProperties());
+        progressEntity.getWarnings().add("Unsupported IUNC category in feature: " + iuncCategoryValue);
       } else {
+        // we managed to parse IUNC category from feature
         Statement existingIuncCategory = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("IUCN protected areas category"));
-        if (existingIuncCategory == null
-            || ((iuncCategory != WikiData.NULL_ENTITY_VALUE || existingIuncCategory.getValue() != null)
-            && !iuncCategory.equals(existingIuncCategory.getValue()))) {
+        if (existingIuncCategory == null) {
+          log.trace("No previous IUNC category claim. Creating new without point in time.");
           addStatements.add(iuncCategoryStatementFactory(iuncCategory, naturvardsregistretObject));
           progressEntity.getCreatedClaims().add("iunc category");
+
+        } else {
+          log.trace("There is an existing IUNC category set at Wikidata");
+
+          TimeValue existingIuncCategoryReferencePublishedDate = getReferencePublishedDate(existingIuncCategory);
+
+          if (iuncCategory == WikiData.NULL_ENTITY_VALUE) {
+            if (existingIuncCategory.getValue() != null) {
+              log.trace("IUNC category has locally changed to NOT APPLICABLE.");
+              if (!wikiData.hasQualifier(existingIuncCategory, wikiData.property("point in time"))) {
+                // update previous with point in time from retrieved date if not already set
+                addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
+                    .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
+                    .build());
+                deleteStatements.add(existingIuncCategory);
+
+              }
+              log.trace("Add new IUNC category without value but with point in time");
+              addStatements.add(addNaturvardsregistretReferences(
+                  naturvardsregistretObject, StatementBuilder
+                      .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("IUCN protected areas category"))
+                      .withNoValue()
+              ).build());
+              progressEntity.getCreatedClaims().add("iunc category");
+
+            } else {
+              // no change
+            }
+          } else if (!iuncCategory.equals(existingIuncCategory.getValue())) {
+            log.trace("IUNC category has locally changed to an applicable value.");
+            if (!wikiData.hasQualifier(existingIuncCategory, wikiData.property("point in time"))) {
+              // update previous with point in time from retrieved date if not already set
+              addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
+                  .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
+                  .build());
+              deleteStatements.add(existingIuncCategory);
+            }
+
+            log.trace("Add new IUNC category with value and point in time");
+            addStatements.add(addNaturvardsregistretReferences(
+                naturvardsregistretObject, StatementBuilder
+                    .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("IUCN protected areas category"))
+                    .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), wikiData.toTimeValue(naturvardsregistretObject.getPublishedDate())))
+                    .withNoValue()
+            ).build());
+            progressEntity.getCreatedClaims().add("iunc category");
+          }
         }
       }
     }
@@ -391,16 +440,51 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     }
 
     // operator
-    naturvardsregistretObject.setOperatorWikiDataItem(operatorsByNvrProperty.get((String) naturvardsregistretObject.getFeature().getProperty("FORVALTARE")));
+    String featureOperatorValue = (String) naturvardsregistretObject.getFeature().getProperty("FORVALTARE");
+    naturvardsregistretObject.setOperatorWikiDataItem(operatorsByNvrProperty.get(featureOperatorValue));
     if (naturvardsregistretObject.getOperatorWikiDataItem() == null) {
-      log.warn("Unable to lookup operator Q for '{}' Operator claims will not be touched.", (String) naturvardsregistretObject.getFeature().getProperty("FORVALTARE"));
-      // todo warning in progress
+      log.warn("Unable to lookup operator Q for '{}' Operator claims will not be touched.", featureOperatorValue);
+      progressEntity.getWarnings().add("Operator claims will not be touched. Unable to lookup operator listed in feature: " + featureOperatorValue);
     } else {
       Statement existingOperator = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("operator"));
-      if (existingOperator == null
-          || !existingOperator.getValue().equals(naturvardsregistretObject.getOperatorWikiDataItem())) {
-        addStatements.add(operatorStatementFactory(naturvardsregistretObject));
-        progressEntity.getCreatedClaims().add("operator");
+      boolean existingOperatorHasDelta = existingOperator != null && !existingOperator.getValue().equals(naturvardsregistretObject.getOperatorWikiDataItem());
+      if (existingOperator == null || existingOperatorHasDelta) {
+
+        if (existingOperator != null) {
+
+          //  if existing does not have point in time
+          if (!wikiData.hasQualifier(existingOperator, wikiData.property("point in time"))) {
+
+            // clone old and add point in time using
+            TimeValue existingOperatorReferencePublishedDate = getReferencePublishedDate(existingOperator);
+            if (existingOperatorReferencePublishedDate == null) {
+              log.warn("Operator statement in {} exists but has no published date, so we don't know what to set as point in time.", naturvardsregistretObject.getNvrid());
+              progressEntity.getWarnings().add("Previous operator statement exists but has no published date, so we don't know what to set point in time to");
+              // todo now what?
+            } else {
+              addStatements.add(wikiData.asStatementBuilder(existingOperator)
+                  .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingOperatorReferencePublishedDate))
+                  .build());
+              deleteStatements.add(existingOperator);
+              progressEntity.getModifiedClaims().add("operator");
+            }
+          } else {
+            // old already has a point in time, no need to update old.
+          }
+
+          // add point in time to new
+          addStatements.add(addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
+              .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("operator"))
+              .withValue(naturvardsregistretObject.getOperatorWikiDataItem())
+              .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), wikiData.toTimeValue(naturvardsregistretObject.getPublishedDate())))
+          ).build());
+          progressEntity.getCreatedClaims().add("operator");
+
+        } else {
+
+          addStatements.add(operatorStatementFactory(naturvardsregistretObject));
+          progressEntity.getCreatedClaims().add("operator");
+        }
       }
     }
 
@@ -627,5 +711,20 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
   private void statedInReferenceFactory(ReferenceBuilder referenceBuilder, NaturvardsregistretObject naturvardsregistretObject) {
     referenceBuilder.withPropertyValue(getWikiData().property("stated in"), getWikiData().entity("Protected Areas (Nature Reserves)"));
   }
+
+  public TimeValue getReferencePublishedDate(Statement statement) {
+    PropertyIdValue published = wikiData.property("publication date");
+    for (Reference reference : statement.getReferences()) {
+      for (Iterator<Snak> snakIterator = reference.getAllSnaks(); snakIterator.hasNext(); ) {
+        Snak snak = snakIterator.next();
+        if (published.getId().equals(snak.getPropertyId().getId())) {
+          TimeValue snakTimeValue = (TimeValue) snak.getValue();
+          return snakTimeValue;
+        }
+      }
+    }
+    return null;
+  }
+
 
 }
