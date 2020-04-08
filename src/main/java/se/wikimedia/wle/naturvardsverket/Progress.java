@@ -57,6 +57,8 @@ public class Progress {
 
     private String error;
 
+    private Entity previousExecution;
+
   }
 
 }

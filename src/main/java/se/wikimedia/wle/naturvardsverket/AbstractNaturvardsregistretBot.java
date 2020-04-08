@@ -110,13 +110,14 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
           continue;
         }
 
-        progressEntity = progress.getProcessed().get(nvrid);
-        if (progressEntity != null && progressEntity.getError() == null) {
+        Progress.Entity previousExecution = progress.getProcessed().get(nvrid);
+        if (previousExecution != null && previousExecution.getError() == null) {
           log.info("{} is listed in progress without error. Will be skipped", nvrid);
         } else {
           // process
           try {
             progressEntity = new Progress.Entity();
+            progressEntity.setPreviousExecution(previousExecution);
             progressEntity.setEpochStarted(System.currentTimeMillis());
             progressEntity.setNvrid(nvrid);
             process(feature);
