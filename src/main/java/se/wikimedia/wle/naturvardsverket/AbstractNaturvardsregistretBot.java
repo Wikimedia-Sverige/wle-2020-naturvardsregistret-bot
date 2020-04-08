@@ -392,11 +392,16 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
               log.trace("IUNC category has locally changed to NOT APPLICABLE.");
               if (!wikiData.hasQualifier(existingIuncCategory, wikiData.property("point in time"))) {
                 // update previous with point in time from retrieved date if not already set
-                addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
-                    .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
-                    .build());
-                deleteStatements.add(existingIuncCategory);
-
+                if (existingIuncCategoryReferencePublishedDate == null) {
+                  log.warn("No published date to use for point in time. Previous IUNC category will be left untouched.");
+                  progressEntity.getWarnings().add("No published date to use for point in time. Previous IUNC category left untouched.");
+                } else {
+                  addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
+                      .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
+                      .build());
+                  deleteStatements.add(existingIuncCategory);
+                  progressEntity.getModifiedClaims().add("iunc category");
+                }
               }
               log.trace("Add new IUNC category without value but with point in time");
               addStatements.add(addNaturvardsregistretReferences(
@@ -413,10 +418,16 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
             log.trace("IUNC category has locally changed to an applicable value.");
             if (!wikiData.hasQualifier(existingIuncCategory, wikiData.property("point in time"))) {
               // update previous with point in time from retrieved date if not already set
-              addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
-                  .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
-                  .build());
-              deleteStatements.add(existingIuncCategory);
+              if (existingIuncCategoryReferencePublishedDate == null) {
+                log.warn("No published date to use for point in time. Previous IUNC category will be left untouched.");
+                progressEntity.getWarnings().add("No published date to use for point in time. Previous IUNC category left untouched.");
+              } else {
+                addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
+                    .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
+                    .build());
+                deleteStatements.add(existingIuncCategory);
+                progressEntity.getModifiedClaims().add("iunc category");
+              }
             }
 
             log.trace("Add new IUNC category with value and point in time");
@@ -461,7 +472,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
             if (existingOperatorReferencePublishedDate == null) {
               log.warn("Operator statement in {} exists but has no published date, so we don't know what to set as point in time.", naturvardsregistretObject.getNvrid());
               progressEntity.getWarnings().add("Previous operator statement exists but has no published date, so we don't know what to set point in time to");
-              // todo now what?
+                // todo now what?
             } else {
               addStatements.add(wikiData.asStatementBuilder(existingOperator)
                   .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingOperatorReferencePublishedDate))
