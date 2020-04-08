@@ -15,7 +15,6 @@ import org.wikidata.wdtk.datamodel.helpers.StatementBuilder;
 import org.wikidata.wdtk.datamodel.implementation.EntityIdValueImpl;
 import org.wikidata.wdtk.datamodel.implementation.TimeValueImpl;
 import org.wikidata.wdtk.datamodel.interfaces.*;
-import org.wikidata.wdtk.wikibaseapi.ApiConnection;
 import org.wikidata.wdtk.wikibaseapi.BasicApiConnection;
 import org.wikidata.wdtk.wikibaseapi.WikibaseDataEditor;
 import org.wikidata.wdtk.wikibaseapi.WikibaseDataFetcher;
@@ -174,7 +173,7 @@ public class WikiData {
 
 
   public ObjectNode query(String sparql) throws IOException {
-    log.trace("Executing SPAQL query {}", sparql);
+    log.trace("Executing SPARQL query {}", sparql);
 
     String url = "http://query.wikidata.org/sparql?format=json&query=" + URLEncoder.encode(sparql, "UTF8");
 
@@ -441,9 +440,9 @@ public class WikiData {
     }
     return LocalDateTime.parse(sb.toString(), dateTimeFormatter);
   }
-
+  /** converts an existing statement to a builder, allowing for adding qualifiers, references etc and add it again. */
   public StatementBuilder asStatementBuilder(Statement statement) {
-    StatementBuilder statementBuilder = StatementBuilder.forSubjectAndProperty(ItemIdValue.NULL, (PropertyIdValue) statement.getSubject());
+    StatementBuilder statementBuilder = StatementBuilder.forSubjectAndProperty(ItemIdValue.NULL, statement.getMainSnak().getPropertyId());
     if (statement.getQualifiers() != null && !statement.getQualifiers().isEmpty()) {
       statementBuilder.withQualifiers(statement.getQualifiers());
     }
