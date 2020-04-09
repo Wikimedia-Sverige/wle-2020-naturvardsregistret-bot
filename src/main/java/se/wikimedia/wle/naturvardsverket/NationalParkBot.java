@@ -3,6 +3,10 @@ package se.wikimedia.wle.naturvardsverket;
 import org.wikidata.wdtk.datamodel.interfaces.EntityIdValue;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class NationalParkBot extends AbstractNaturvardsregistretBot {
 
@@ -13,6 +17,26 @@ public class NationalParkBot extends AbstractNaturvardsregistretBot {
       bot.execute();
     } finally {
       bot.close();
+    }
+  }
+
+  private Set<String> supportedDescriptionLanguages = new HashSet<>(Arrays.asList(
+      "sv", "en"
+  ));
+
+  @Override
+  protected Collection<String> getSupportedDescriptionLanguages() {
+    return supportedDescriptionLanguages;
+  }
+
+  @Override
+  protected String getDescription(NaturvardsregistretObject object, String language) {
+    if ("sv".equals(language)) {
+      return "nationalpark i " + (String)object.getFeature().getProperties().get("LAN");
+    } else if ("en".equals(language)) {
+      return "national park in " + (String)object.getFeature().getProperties().get("LAN") + ", Sweden";
+    } else {
+      throw new IllegalArgumentException("Unsupported language: " + language);
     }
   }
 

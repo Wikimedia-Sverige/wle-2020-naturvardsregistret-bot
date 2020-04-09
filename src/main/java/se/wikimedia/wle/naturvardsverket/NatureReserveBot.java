@@ -5,6 +5,9 @@ import org.wikidata.wdtk.datamodel.interfaces.EntityIdValue;
 import org.wikidata.wdtk.datamodel.interfaces.PropertyIdValue;
 
 import java.io.File;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class NatureReserveBot extends AbstractNaturvardsregistretBot {
 
@@ -43,6 +46,27 @@ public class NatureReserveBot extends AbstractNaturvardsregistretBot {
   protected String getNaturvardsregistretObjectTypeEntityId() {
     return "Q179049";
   }
+
+  private Set<String> supportedDescriptionLanguages = new HashSet<>(Arrays.asList(
+      "sv", "en"
+  ));
+
+  @Override
+  protected Collection<String> getSupportedDescriptionLanguages() {
+    return supportedDescriptionLanguages;
+  }
+
+  @Override
+  protected String getDescription(NaturvardsregistretObject object, String language) {
+    if ("sv".equals(language)) {
+      return "naturreservat i " + (String)object.getFeature().getProperties().get("LAN");
+    } else if ("en".equals(language)) {
+      return "nature reserve in " + (String)object.getFeature().getProperties().get("LAN") + ", Sweden";
+    } else {
+      throw new IllegalArgumentException("Unsupported language: " + language);
+    }
+  }
+
 
   @Override
   public String commonGeoshapeArticleNameFactory(NaturvardsregistretObject object) {

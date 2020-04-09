@@ -47,6 +47,9 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
    */
   protected abstract String getNaturvardsregistretObjectTypeEntityId();
 
+  protected abstract String getDescription(NaturvardsregistretObject object, String language);
+  protected abstract Collection<String> getSupportedDescriptionLanguages();
+
   public abstract String[] getCommonsArticleCategories(NaturvardsregistretObject object);
 
   /**
@@ -274,7 +277,12 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
                   getWikiData().property("nvrid"))
               .withValue(new StringValueImpl(naturvardsregistretObject.getNvrid()))
           ).build());
-      builder.withLabel(naturvardsregistretObject.getName(), "sv");
+
+      for (String language : getSupportedDescriptionLanguages()) {
+        builder.withLabel(naturvardsregistretObject.getName(), language);
+        builder.withDescription(getDescription(naturvardsregistretObject, language), language);
+      }
+
       if (!isDryRun()) {
         naturvardsregistretObject.setWikiDataItem(getWikiData().getDataEditor().createItemDocument(
             builder.build(),
@@ -358,6 +366,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       NaturvardsregistretObject naturvardsregistretObject,
       List<Statement> addStatements, List<Statement> deleteStatements
   ) throws Exception {
+
+    // todo labels and descriptions?
 
     // inception date
     {
@@ -748,9 +758,12 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     for (Reference reference : statement.getReferences()) {
       for (Iterator<Snak> snakIterator = reference.getAllSnaks(); snakIterator.hasNext(); ) {
         Snak snak = snakIterator.next();
-        if (published.getId().equals(snak.getPropertyId().getId())) {
-          TimeValue snakTimeValue = (TimeValue) snak.getValue();
-          return snakTimeValue;
+        if (snak instanceof ValueSnak) {
+          ValueSnak valueSnak = (ValueSnak)snak;
+          if (published.getId().equals(snak.getPropertyId().getId())) {
+            TimeValue snakTimeValue = (TimeValue) valueSnak.getValue();
+            return snakTimeValue;
+          }
         }
       }
     }
