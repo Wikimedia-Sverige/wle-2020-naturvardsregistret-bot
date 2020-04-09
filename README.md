@@ -49,3 +49,6 @@ will thus only be added.
 * Updating categories at commons geoshape discussion page will overwrite any
 categories added by third parties. This is OK for now since we only add, but
 for future imports categories needs to be parsed and checked for delta!
+
+* All items created by the bot prior to 2020-04-10 is missing description!
+* Almost all items created by the bot prior to 2020-04-10 is missing labels!
