@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Accept returns false if unable to handle contained geometry
  */
-public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
+public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
 
   private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -43,22 +43,21 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
   }
 
   @Override
-  public Boolean visit(org.geojson.Point point) {
+  public Void visit(org.geojson.Point point) {
     try {
       org.locationtech.jts.geom.Point jtsPoint = (org.locationtech.jts.geom.Point) new GeoJSONReader().read(bot.getObjectMapper().writeValueAsString(point));
 
       // allow 1m diff
       processSingleCoordinateLocation(0.001d, jtsPoint);
 
-      return true;
+      return null;
     } catch (Exception e) {
-      log.error("Caught exception", e);
-      return false;
+      throw new RuntimeException(e);
     }
   }
 
   @Override
-  public Boolean visit(MultiPoint multiPoint) {
+  public Void visit(MultiPoint multiPoint) {
     try {
       org.locationtech.jts.geom.MultiPoint jtsMultiPoint = (org.locationtech.jts.geom.MultiPoint)new GeoJSONReader().read(bot.getObjectMapper().writeValueAsString(multiPoint));
 
@@ -79,16 +78,15 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
 
       // todo add a commons article containing all points?
 
-      return true;
+      return null;
 
     } catch (Exception e) {
-      log.error("Caught exception", e);
-      return false;
+      throw new RuntimeException(e);
     }
   }
 
   @Override
-  public Boolean visit(Polygon polygon) {
+  public Void visit(Polygon polygon) {
     try {
       org.locationtech.jts.geom.Polygon jtsPolygon = (org.locationtech.jts.geom.Polygon)new GeoJSONReader().read(bot.getObjectMapper().writeValueAsString(polygon));
 
@@ -102,16 +100,15 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       }
 
       createOrPossiblyUpdateCommonGeoshapeArticle(naturvardsregistretObject, jtsPolygon, centroid);
-      return true;
+      return null;
 
     } catch (Exception e) {
-      log.error("Caught exception", e);
-      return false;
+      throw new RuntimeException(e);
     }
   }
 
   @Override
-  public Boolean visit(MultiPolygon multiPolygon) {
+  public Void visit(MultiPolygon multiPolygon) {
     try {
       org.locationtech.jts.geom.MultiPolygon jtsMultiPolygon = (org.locationtech.jts.geom.MultiPolygon)new GeoJSONReader().read(bot.getObjectMapper().writeValueAsString(multiPolygon));
 
@@ -121,35 +118,34 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Boolean> {
       processSingleCoordinateLocation(0.1d, centroid);
 
       createOrPossiblyUpdateCommonGeoshapeArticle(naturvardsregistretObject, jtsMultiPolygon, centroid);
-      return true;
+      return null;
     } catch (Exception e) {
-      log.error("Caught exception", e);
-      return false;
+      throw new RuntimeException(e);
     }
   }
 
   @Override
-  public Boolean visit(GeometryCollection geometryCollection) {
+  public Void visit(GeometryCollection geometryCollection) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Boolean visit(FeatureCollection featureCollection) {
+  public Void visit(FeatureCollection featureCollection) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Boolean visit(Feature feature) {
+  public Void visit(Feature feature) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Boolean visit(MultiLineString multiLineString) {
+  public Void visit(MultiLineString multiLineString) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public Boolean visit(LineString lineString) {
+  public Void visit(LineString lineString) {
     throw new UnsupportedOperationException();
   }
 

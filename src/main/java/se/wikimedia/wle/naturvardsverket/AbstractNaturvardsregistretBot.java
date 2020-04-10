@@ -625,14 +625,12 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
 
     if (doGeometryDeltaEvaluation) {
-      if (!naturvardsregistretObject.getFeature().getGeometry().accept(
+      naturvardsregistretObject.getFeature().getGeometry().accept(
           new GeometryStrategy(
               this,
               naturvardsregistretObject,
               addStatements, deleteStatements
-          ))) {
-        log.error("Unable to process geometry {}", naturvardsregistretObject.getFeature().getGeometry());
-      }
+          ));
     }
   }
 
