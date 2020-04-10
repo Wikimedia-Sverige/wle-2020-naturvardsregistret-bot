@@ -2,6 +2,7 @@ package se.wikimedia.wle.naturvardsverket;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import lombok.Getter;
+import lombok.Setter;
 import org.geojson.Feature;
 import org.geojson.FeatureCollection;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import org.wikidata.wdtk.wikibaseapi.apierrors.MediaWikiApiErrorException;
 import java.io.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -48,6 +50,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
   protected abstract String getNaturvardsregistretObjectTypeEntityId();
 
   protected abstract String getDescription(NaturvardsregistretObject object, String language);
+
   protected abstract Collection<String> getSupportedDescriptionLanguages();
 
   public abstract String[] getCommonsArticleCategories(NaturvardsregistretObject object);
@@ -69,6 +72,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     return naturvardsregistretEntityType == WikiData.NULL_ENTITY ? null : naturvardsregistretEntityType;
   }
 
+  @Setter
+  private boolean doGeometryDeltaEvaluation = true;
 
   @Override
   protected void execute() throws Exception {
@@ -115,6 +120,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
         }
 
         Progress.Entity previousExecution = progress.getProcessed().get(nvrid);
+
         if (previousExecution != null && previousExecution.getError() == null) {
           log.info("{} is listed in progress without error. Will be skipped", nvrid);
         } else {
@@ -141,9 +147,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
           System.currentTimeMillis();
         }
       }
-
     }
-
   }
 
   private Map<String, EntityIdValue> iuncCategories = new HashMap<>();
@@ -371,12 +375,36 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
     // inception date
     {
-      Statement existingInceptionDate = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("inception date"));
-      if (existingInceptionDate == null
-          || (!wikiData.toLocalDateTime((TimeValue) existingInceptionDate.getValue()).equals(wikiData.toLocalDateTime(inceptionDateValueFactory(naturvardsregistretObject))))) {
+      // there should only be one inception date.
+      // remove any that is not of the value from the delta.
+      // add if current is missing.
+
+      TimeValue inceptionDate = inceptionDateValueFactory(naturvardsregistretObject);
+      LocalDateTime inceptionLocalDate = wikiData.toLocalDateTime(inceptionDate);
+      StatementGroup statements = naturvardsregistretObject.getWikiDataItem().findStatementGroup(getWikiData().property("inception date"));
+      if (statements == null) {
         addStatements.add(inceptionDateStatementFactory(naturvardsregistretObject));
         progressEntity.getCreatedClaims().add("inception date");
+      } else {
+        boolean foundMatchingExistingInceptionDateWithReferences = false;
+        for (Statement existingInceptionDate : statements) {
+          if (!wikiData.toLocalDateTime((TimeValue) existingInceptionDate.getValue()).equals(inceptionLocalDate)) {
+            deleteStatements.add(existingInceptionDate);
+            progressEntity.getDeletedClaims().add("inception date");
+          } else if (existingInceptionDate.getReferences() == null || existingInceptionDate.getReferences().isEmpty()) {
+            // The value is correct, but there is no references to where it came from. Remove that to make place for one with references.
+            deleteStatements.add(existingInceptionDate);
+            progressEntity.getModifiedClaims().add("inception date");
+          } else {
+            foundMatchingExistingInceptionDateWithReferences = true;
+          }
+        }
+        if (!foundMatchingExistingInceptionDateWithReferences) {
+          addStatements.add(inceptionDateStatementFactory(naturvardsregistretObject));
+          progressEntity.getCreatedClaims().add("inception date");
+        }
       }
+
     }
 
     // iunc cateogory
@@ -596,13 +624,15 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 //    }
 
 
-    if (!naturvardsregistretObject.getFeature().getGeometry().accept(
-        new GeometryStrategy(
-            this,
-            naturvardsregistretObject,
-            addStatements, deleteStatements
-        ))) {
-      log.error("Unable to process geometry {}", naturvardsregistretObject.getFeature().getGeometry());
+    if (doGeometryDeltaEvaluation) {
+      if (!naturvardsregistretObject.getFeature().getGeometry().accept(
+          new GeometryStrategy(
+              this,
+              naturvardsregistretObject,
+              addStatements, deleteStatements
+          ))) {
+        log.error("Unable to process geometry {}", naturvardsregistretObject.getFeature().getGeometry());
+      }
     }
   }
 
@@ -639,7 +669,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
   private TimeValue inceptionDateValueFactory(NaturvardsregistretObject naturvardsregistretObject) {
     // todo I think inception date should be either IKRAFTDAT or if null URSGALLDAT or if null URBESLDAT, but historically we used URSBESLDAT
 
-    boolean iAmRightAboutThis = false;
+    boolean iAmRightAboutThis = true;
 
     String inceptionDateString;
     if (iAmRightAboutThis) {
@@ -759,7 +789,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       for (Iterator<Snak> snakIterator = reference.getAllSnaks(); snakIterator.hasNext(); ) {
         Snak snak = snakIterator.next();
         if (snak instanceof ValueSnak) {
-          ValueSnak valueSnak = (ValueSnak)snak;
+          ValueSnak valueSnak = (ValueSnak) snak;
           if (published.getId().equals(snak.getPropertyId().getId())) {
             TimeValue snakTimeValue = (TimeValue) valueSnak.getValue();
             return snakTimeValue;
