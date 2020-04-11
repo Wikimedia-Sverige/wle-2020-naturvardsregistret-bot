@@ -11,10 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.wikidata.wdtk.datamodel.helpers.StatementBuilder;
 import org.wikidata.wdtk.datamodel.implementation.GlobeCoordinatesValueImpl;
 import org.wikidata.wdtk.datamodel.implementation.StringValueImpl;
-import org.wikidata.wdtk.datamodel.interfaces.GlobeCoordinatesValue;
-import org.wikidata.wdtk.datamodel.interfaces.ItemIdValue;
-import org.wikidata.wdtk.datamodel.interfaces.Statement;
-import org.wikidata.wdtk.datamodel.interfaces.StatementGroup;
+import org.wikidata.wdtk.datamodel.interfaces.*;
 import org.wololo.jts2geojson.GeoJSONReader;
 
 import java.util.List;
@@ -155,18 +152,27 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
     if (existingCoordinateLocation == null) {
       addStatements.add(coordinateLocationStatementFactory(coordinateLocationValue));
     } else {
-      // Be a bit leanient with the coordinate. Compare distance, if less than 100 meters then no need to update
-      GlobeCoordinatesValue existingCoordinate = (GlobeCoordinatesValue) existingCoordinateLocation.getValue();
-      double kmDistanceBetweenExistingAndLocalCoordinate = ArcDistance.arcDistance(existingCoordinate, coordinateLocationValue);
-      if (kmDistanceBetweenExistingAndLocalCoordinate > coordinateLocationKilometerLeaniency) {
-        // remove the old coordinate
-        deleteStatements.add(existingCoordinateLocation);
-        bot.getProgressEntity().getDeletedClaims().add("coordinate");
-        log.debug("Will add a new coordinate location. Local data coordinate is {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
-        addStatements.add(coordinateLocationStatementFactory(coordinateLocationValue));
-        bot.getProgressEntity().getCreatedClaims().add("coordinate");
+
+      TimeValue existingCoordinateReferencePublishedDate = bot.getReferencePublishedDate(existingCoordinateLocation);
+      if (existingCoordinateReferencePublishedDate != null
+          && bot.getWikiData().toLocalDateTime(existingCoordinateReferencePublishedDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+        log.info("Coordinate published date is fresher at Wikidata than local. Skipping.");
+        bot.getProgressEntity().getWarnings().add("Coordinate published date is fresher at Wikidata than local.");
+
       } else {
-        log.debug("Will not add new coordinate location. Local data coordinate is only {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
+        // Be a bit leanient with the coordinate. Compare distance, if less than 100 meters then no need to update
+        GlobeCoordinatesValue existingCoordinate = (GlobeCoordinatesValue) existingCoordinateLocation.getValue();
+        double kmDistanceBetweenExistingAndLocalCoordinate = ArcDistance.arcDistance(existingCoordinate, coordinateLocationValue);
+        if (kmDistanceBetweenExistingAndLocalCoordinate > coordinateLocationKilometerLeaniency) {
+          // remove the old coordinate
+          deleteStatements.add(existingCoordinateLocation);
+          bot.getProgressEntity().getDeletedClaims().add("coordinate");
+          log.debug("Will add a new coordinate location. Local data coordinate is {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
+          addStatements.add(coordinateLocationStatementFactory(coordinateLocationValue));
+          bot.getProgressEntity().getCreatedClaims().add("coordinate");
+        } else {
+          log.debug("Will not add new coordinate location. Local data coordinate is only {} meters away from existing location in WikiData.", String.format("%f", kmDistanceBetweenExistingAndLocalCoordinate * 1000));
+        }
       }
     }
   }
@@ -227,28 +233,36 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
 
 
     Statement existingGeoshape = bot.getWikiData().findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), bot.getWikiData().property("geoshape"));
-    if (existingGeoshape != null
-        && !existingGeoshape.getValue().equals(geoshapeValueFactory(commonsGeoshapeArticleName))) {
-      log.debug("Download previously existing Commons geoshape article.");
-      Article commonsGeoShapeArticle = bot.getWikiBot().getArticle(commonsGeoshapeArticleName);
-      if (commonsGeoShapeArticle.getRevisionId().isEmpty()) {
-        log.warn("WikiData points at a non existing geoshape at Commons");
-        createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
-      } else {
-        ObjectNode existingCommonsObject = bot.getObjectMapper().readValue(commonsGeoShapeArticle.getText(), ObjectNode.class);
-        if (!commonsGeoshapeObject.equals(existingCommonsObject)) {
-          log.debug("Current Commons geoshape article is not up to date.");
-          createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
-          addStatements.add(geoshapeStatementFactory(naturvardsregistretObject, commonsGeoshapeArticleName));
-          bot.getProgressEntity().getCreatedClaims().add("geoshape");
-        } else {
-          log.debug("Current Commons geoshape article is up to date. No need to update.");
-        }
-      }
+    TimeValue existingGeoShapeReferencePublishedDate = bot.getReferencePublishedDate(existingGeoshape);
+    if (existingGeoShapeReferencePublishedDate != null
+        && bot.getWikiData().toLocalDateTime(existingGeoShapeReferencePublishedDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+        log.info("Geoshape publish date is fresher at Wikidata than local. Skipping.");
+        bot.getProgressEntity().getWarnings().add("Geoshape publish date is fresher at Wikidata than local.");
     } else {
-      createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
-      addStatements.add(geoshapeStatementFactory(naturvardsregistretObject, commonsGeoshapeArticleName));
-      bot.getProgressEntity().getCreatedClaims().add("geoshape");
+
+      if (existingGeoshape != null
+          && !existingGeoshape.getValue().equals(geoshapeValueFactory(commonsGeoshapeArticleName))) {
+        log.debug("Download previously existing Commons geoshape article.");
+        Article commonsGeoShapeArticle = bot.getWikiBot().getArticle(commonsGeoshapeArticleName);
+        if (commonsGeoShapeArticle.getRevisionId().isEmpty()) {
+          log.warn("WikiData points at a non existing geoshape at Commons");
+          createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
+        } else {
+          ObjectNode existingCommonsObject = bot.getObjectMapper().readValue(commonsGeoShapeArticle.getText(), ObjectNode.class);
+          if (!commonsGeoshapeObject.equals(existingCommonsObject)) {
+            log.debug("Current Commons geoshape article is not up to date.");
+            createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
+            addStatements.add(geoshapeStatementFactory(naturvardsregistretObject, commonsGeoshapeArticleName));
+            bot.getProgressEntity().getCreatedClaims().add("geoshape");
+          } else {
+            log.debug("Current Commons geoshape article is up to date. No need to update.");
+          }
+        }
+      } else {
+        createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
+        addStatements.add(geoshapeStatementFactory(naturvardsregistretObject, commonsGeoshapeArticleName));
+        bot.getProgressEntity().getCreatedClaims().add("geoshape");
+      }
     }
   }
 

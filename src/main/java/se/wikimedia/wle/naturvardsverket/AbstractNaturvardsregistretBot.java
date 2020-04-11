@@ -423,20 +423,21 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
         } else {
           // we managed to parse IUCN category from feature
           Statement existingIucnCategory = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("IUCN protected areas category"));
-          if (existingIucnCategory == null) {
-            log.trace("No previous IUCN category claim. Creating new without point in time.");
-            addStatements.add(iucnCategoryStatementFactory(iucn, naturvardsregistretObject));
-            progressEntity.getCreatedClaims().add("iucn category");
+          TimeValue existingIucnCategoryReferencePublishedDate = getReferencePublishedDate(existingIucnCategory);
+          if (existingIucnCategoryReferencePublishedDate != null
+              && wikiData.toLocalDateTime(existingIucnCategoryReferencePublishedDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+            log.info("IUCN publication date is fresher at Wikidata than local publish date. Skipping.");
+            progressEntity.getWarnings().add("IUCN publication date is fresher at Wikidata.");
 
           } else {
-            log.trace("There is an existing IUCN category set at Wikidata");
 
-            TimeValue existingIucnCategoryReferencePublishedDate = getReferencePublishedDate(existingIucnCategory);
-            if (existingIucnCategoryReferencePublishedDate != null
-                && wikiData.toLocalDateTime(existingIucnCategoryReferencePublishedDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
-              log.info("IUCN publication date is fresher at Wikidata than local publish date. Skipping.");
+            if (existingIucnCategory == null) {
+              log.trace("No previous IUCN category claim. Creating new without point in time.");
+              addStatements.add(iucnCategoryStatementFactory(iucn, naturvardsregistretObject));
+              progressEntity.getCreatedClaims().add("iucn category");
 
             } else {
+              log.trace("There is an existing IUCN category set at Wikidata");
 
               if (iucn == WikiData.NULL_ENTITY_VALUE) {
                 if (existingIucnCategory.getValue() != null) {
@@ -515,18 +516,19 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
         progressEntity.getWarnings().add("Operator claims will not be touched. Unable to lookup operator listed in feature: " + featureOperatorValue);
       } else {
         Statement existingOperator = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("operator"));
+        TimeValue existingOperatorReferencePublishedDate = getReferencePublishedDate(existingOperator);
+        if (existingOperatorReferencePublishedDate != null
+            && wikiData.toLocalDateTime(existingOperatorReferencePublishedDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+          log.info("Operator publish date at Wikidata is more fresh than local. Skipping.");
+          progressEntity.getWarnings().add("Operator publication date is fresher at Wikidata.");
 
-        boolean existingOperatorHasDelta = existingOperator != null && !existingOperator.getValue().equals(naturvardsregistretObject.getOperatorWikiDataItem());
-        if (existingOperator == null || existingOperatorHasDelta) {
+        } else {
 
-          if (existingOperator != null) {
+          boolean existingOperatorHasDelta = existingOperator != null && !existingOperator.getValue().equals(naturvardsregistretObject.getOperatorWikiDataItem());
+          if (existingOperator == null || existingOperatorHasDelta) {
 
-            TimeValue existingOperatorReferencePublishedDate = getReferencePublishedDate(existingOperator);
-            if (existingOperatorReferencePublishedDate != null
-                && wikiData.toLocalDateTime(existingOperatorReferencePublishedDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
-              log.info("Operator publish date at Wikidata is more fresh than local. Skipping.");
+            if (existingOperator != null) {
 
-            } else {
 
               //  if existing does not have point in time
               if (!wikiData.hasQualifier(existingOperator, wikiData.property("point in time"))) {
@@ -576,6 +578,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       if (existingAreaReferencePublishDate != null
           && wikiData.toLocalDateTime(existingAreaReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
         log.info("Area published date is fresher at Wikidata than in local data. Skipping.");
+        progressEntity.getWarnings().add("Area publication date is fresher at Wikidata.");
       } else {
         boolean existingAreaHasDelta = existingArea != null && !existingArea.getValue().equals(areaValueFactory(naturvardsregistretObject));
         if (existingArea == null || existingAreaHasDelta) {
@@ -595,6 +598,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       if (existingAreaLandReferencePublishDate != null
           && wikiData.toLocalDateTime(existingAreaLandReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
         log.info("Area land published date is fresher at Wikidata than in local data. Skipping.");
+        progressEntity.getWarnings().add("Area land publication date is fresher at Wikidata.");
+
       } else {
         boolean existingLandAreaHasDelta = existingLandArea != null && !existingLandArea.getValue().equals(areaLandValueFactory(naturvardsregistretObject));
         if (existingLandArea == null || existingLandAreaHasDelta) {
@@ -613,7 +618,9 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       TimeValue existingAreaForestReferencePublishDate = getReferencePublishedDate(existingForestArea);
       if (existingAreaForestReferencePublishDate != null
           && wikiData.toLocalDateTime(existingAreaForestReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
-        log.info("Area published date is fresher at Wikidata than in local data. Skipping.");
+        log.info("Area forest published date is fresher at Wikidata than in local data. Skipping.");
+        progressEntity.getWarnings().add("Area forest publication date is fresher at Wikidata.");
+
       } else {
         boolean existingForestAreaHasDelta = existingForestArea != null && !existingForestArea.getValue().equals(areaForestValueFactory(naturvardsregistretObject));
         if (existingForestArea == null || existingForestAreaHasDelta) {
@@ -633,6 +640,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       if (existingAreaBodyOfWaterReferencePublishDate != null
           && wikiData.toLocalDateTime(existingAreaBodyOfWaterReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
         log.info("Area body of water published date is fresher at Wikidata than in local data. Skipping.");
+        progressEntity.getWarnings().add("Area body of water publication date is fresher at Wikidata.");
+
       } else {
         boolean exitingBodyOfWaterAreaHasDelta = existingBodyOfWaterArea != null && !existingBodyOfWaterArea.getValue().equals(areaBodyOfWaterValueFactory(naturvardsregistretObject));
         if (existingBodyOfWaterArea == null || exitingBodyOfWaterAreaHasDelta) {
