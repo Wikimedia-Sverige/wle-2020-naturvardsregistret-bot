@@ -150,7 +150,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     }
   }
 
-  private Map<String, EntityIdValue> iuncCategories = new HashMap<>();
+  private Map<String, EntityIdValue> iucnCategories = new HashMap<>();
 
 
   private Map<String, EntityIdValue> operatorsByNvrProperty = new HashMap<>();
@@ -167,19 +167,19 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
 
     // , Områden som ej kan klassificeras enligt IUCN: s system.
-    iuncCategories.put("0", WikiData.NULL_ENTITY_VALUE);
+    iucnCategories.put("0", WikiData.NULL_ENTITY_VALUE);
     // , Strikt naturreservat (Strict Nature Reserve)
-    iuncCategories.put("IA", getWikiData().getEntityIdValue("Q14545608"));
+    iucnCategories.put("IA", getWikiData().getEntityIdValue("Q14545608"));
     // , Vildmarksområde (Wilderness Area)
-    iuncCategories.put("IB", getWikiData().getEntityIdValue("Q14545620"));
+    iucnCategories.put("IB", getWikiData().getEntityIdValue("Q14545620"));
     //, Nationalpark (National Park)
-    iuncCategories.put("II", getWikiData().getEntityIdValue("Q14545628"));
+    iucnCategories.put("II", getWikiData().getEntityIdValue("Q14545628"));
     // , Naturmonument (Natural Monument)
-    iuncCategories.put("III", getWikiData().getEntityIdValue("Q14545633"));
+    iucnCategories.put("III", getWikiData().getEntityIdValue("Q14545633"));
     //  Habitat/Artskyddsområde (Habitat/Species Management Area)
-    iuncCategories.put("IV", getWikiData().getEntityIdValue("Q14545639"));
+    iucnCategories.put("IV", getWikiData().getEntityIdValue("Q14545639"));
     // Skyddat landskap/havsområde (Protected Landscape/Seascape)
-    iuncCategories.put("V", getWikiData().getEntityIdValue("Q14545646"));
+    iucnCategories.put("V", getWikiData().getEntityIdValue("Q14545646"));
 
     getWikiData().getNamedEntities().put("country", getWikiData().getEntityIdValue("P17"));
     getWikiData().getNamedEntities().put("Sweden", getWikiData().getEntityIdValue("Q34"));
@@ -407,83 +407,83 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
     }
 
-    // iunc cateogory
+    // iucn cateogory
     {
       // todo lookup wikidata if "Not Applicable" is in use as a category!
       // todo see https://www.protectedplanet.net/c/wdpa-lookup-tables
       // not applicable seems to be set a null value link?
       // johannisberg is as null: https://www.wikidata.org/wiki/Q30180845
-      String iuncCategoryValue = naturvardsregistretObject.getFeature().getProperty("IUCNKAT");
-      if (iuncCategoryValue != null) {
-        iuncCategoryValue = iuncCategoryValue.replaceFirst("^\\s*([^,]+).*", "$1").trim().toUpperCase();
-        EntityIdValue iuncCategory = iuncCategories.get(iuncCategoryValue);
-        if (iuncCategory == null) {
-          log.warn("Unsupported IUNC category in feature: {}", naturvardsregistretObject.getFeature().getProperties());
-          progressEntity.getWarnings().add("Unsupported IUNC category in feature: " + iuncCategoryValue);
+      String iucnCategoryValue = naturvardsregistretObject.getFeature().getProperty("IUCNKAT");
+      if (iucnCategoryValue != null) {
+        iucnCategoryValue = iucnCategoryValue.replaceFirst("^\\s*([^,]+).*", "$1").trim().toUpperCase();
+        EntityIdValue iucn = iucnCategories.get(iucnCategoryValue);
+        if (iucn == null) {
+          log.warn("Unsupported IUCN category in feature: {}", naturvardsregistretObject.getFeature().getProperties());
+          progressEntity.getWarnings().add("Unsupported IUCN category in feature: " + iucnCategoryValue);
         } else {
-          // we managed to parse IUNC category from feature
-          Statement existingIuncCategory = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("IUCN protected areas category"));
-          if (existingIuncCategory == null) {
-            log.trace("No previous IUNC category claim. Creating new without point in time.");
-            addStatements.add(iuncCategoryStatementFactory(iuncCategory, naturvardsregistretObject));
-            progressEntity.getCreatedClaims().add("iunc category");
+          // we managed to parse IUCN category from feature
+          Statement existingIucnCategory = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("IUCN protected areas category"));
+          if (existingIucnCategory == null) {
+            log.trace("No previous IUCN category claim. Creating new without point in time.");
+            addStatements.add(iucnCategoryStatementFactory(iucn, naturvardsregistretObject));
+            progressEntity.getCreatedClaims().add("iucn category");
 
           } else {
-            log.trace("There is an existing IUNC category set at Wikidata");
+            log.trace("There is an existing IUCN category set at Wikidata");
 
-            TimeValue existingIuncCategoryReferencePublishedDate = getReferencePublishedDate(existingIuncCategory);
+            TimeValue existingIucnCategoryReferencePublishedDate = getReferencePublishedDate(existingIucnCategory);
 
-            if (iuncCategory == WikiData.NULL_ENTITY_VALUE) {
-              if (existingIuncCategory.getValue() != null) {
-                log.trace("IUNC category has locally changed to NOT APPLICABLE.");
-                if (!wikiData.hasQualifier(existingIuncCategory, wikiData.property("point in time"))) {
+            if (iucn == WikiData.NULL_ENTITY_VALUE) {
+              if (existingIucnCategory.getValue() != null) {
+                log.trace("IUCN category has locally changed to NOT APPLICABLE.");
+                if (!wikiData.hasQualifier(existingIucnCategory, wikiData.property("point in time"))) {
                   // update previous with point in time from retrieved date if not already set
-                  if (existingIuncCategoryReferencePublishedDate == null) {
-                    log.warn("No published date to use for point in time. Previous IUNC category will be left untouched.");
-                    progressEntity.getWarnings().add("No published date to use for point in time. Previous IUNC category left untouched.");
+                  if (existingIucnCategoryReferencePublishedDate == null) {
+                    log.warn("No published date to use for point in time. Previous IUCN category will be left untouched.");
+                    progressEntity.getWarnings().add("No published date to use for point in time. Previous IUCN category left untouched.");
                   } else {
-                    addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
-                        .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
+                    addStatements.add(wikiData.asStatementBuilder(existingIucnCategory)
+                        .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIucnCategoryReferencePublishedDate))
                         .build());
-                    deleteStatements.add(existingIuncCategory);
-                    progressEntity.getModifiedClaims().add("iunc category");
+                    deleteStatements.add(existingIucnCategory);
+                    progressEntity.getModifiedClaims().add("iucn category");
                   }
                 }
-                log.trace("Add new IUNC category without value but with point in time");
+                log.trace("Add new IUCN category without value but with point in time");
                 addStatements.add(addNaturvardsregistretReferences(
                     naturvardsregistretObject, StatementBuilder
                         .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("IUCN protected areas category"))
                         .withNoValue()
                 ).build());
-                progressEntity.getCreatedClaims().add("iunc category");
+                progressEntity.getCreatedClaims().add("iucn category");
 
               } else {
                 // no change
               }
-            } else if (!iuncCategory.equals(existingIuncCategory.getValue())) {
-              log.trace("IUNC category has locally changed to an applicable value.");
-              if (!wikiData.hasQualifier(existingIuncCategory, wikiData.property("point in time"))) {
+            } else if (!iucn.equals(existingIucnCategory.getValue())) {
+              log.trace("IUCN category has locally changed to an applicable value.");
+              if (!wikiData.hasQualifier(existingIucnCategory, wikiData.property("point in time"))) {
                 // update previous with point in time from retrieved date if not already set
-                if (existingIuncCategoryReferencePublishedDate == null) {
-                  log.warn("No published date to use for point in time. Previous IUNC category will be left untouched.");
-                  progressEntity.getWarnings().add("No published date to use for point in time. Previous IUNC category left untouched.");
+                if (existingIucnCategoryReferencePublishedDate == null) {
+                  log.warn("No published date to use for point in time. Previous IUCN category will be left untouched.");
+                  progressEntity.getWarnings().add("No published date to use for point in time. Previous IUCN category left untouched.");
                 } else {
-                  addStatements.add(wikiData.asStatementBuilder(existingIuncCategory)
-                      .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIuncCategoryReferencePublishedDate))
+                  addStatements.add(wikiData.asStatementBuilder(existingIucnCategory)
+                      .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), existingIucnCategoryReferencePublishedDate))
                       .build());
-                  deleteStatements.add(existingIuncCategory);
-                  progressEntity.getModifiedClaims().add("iunc category");
+                  deleteStatements.add(existingIucnCategory);
+                  progressEntity.getModifiedClaims().add("iucn category");
                 }
               }
 
-              log.trace("Add new IUNC category with value and point in time");
+              log.trace("Add new IUCN category with value and point in time");
               addStatements.add(addNaturvardsregistretReferences(
                   naturvardsregistretObject, StatementBuilder
                       .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("IUCN protected areas category"))
                       .withQualifier(new ValueSnakImpl(wikiData.property("point in time"), wikiData.toTimeValue(naturvardsregistretObject.getPublishedDate())))
-                      .withValue(iuncCategory)
+                      .withValue(iucn)
               ).build());
-              progressEntity.getCreatedClaims().add("iunc category");
+              progressEntity.getCreatedClaims().add("iucn category");
             }
           }
         }
@@ -648,11 +648,11 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
     return statementBuilder;
   }
 
-  private Statement iuncCategoryStatementFactory(EntityIdValue iuncCategory, NaturvardsregistretObject naturvardsregistretObject) {
+  private Statement iucnCategoryStatementFactory(EntityIdValue iucnCategory, NaturvardsregistretObject naturvardsregistretObject) {
     StatementBuilder statementBuilder = StatementBuilder
         .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("IUCN protected areas category"));
-    if (WikiData.NULL_ENTITY_VALUE != iuncCategory) {
-      statementBuilder.withValue(iuncCategory);
+    if (WikiData.NULL_ENTITY_VALUE != iucnCategory) {
+      statementBuilder.withValue(iucnCategory);
     }
     return addNaturvardsregistretReferences(naturvardsregistretObject, statementBuilder).build();
   }
