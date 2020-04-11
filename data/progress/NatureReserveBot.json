@@ -1725,7 +1725,7 @@
           "deletedClaims" : [ "area", "coordinate" ],
           "createdCommonsGeoshape" : true,
           "updatedCommonsGeoshape" : false,
-          "warnings" : [ "No published date to use for point in time. Previous iucn category left untouched." ],
+          "warnings" : [ "No published date to use for point in time. Previous IUCN category left untouched." ],
           "error" : null,
           "previousExecution" : null
         }
@@ -13440,7 +13440,7 @@
           "deletedClaims" : [ "area" ],
           "createdCommonsGeoshape" : true,
           "updatedCommonsGeoshape" : false,
-          "warnings" : [ "No published date to use for point in time. Previous iucn category left untouched." ],
+          "warnings" : [ "No published date to use for point in time. Previous IUCN category left untouched." ],
           "error" : null,
           "previousExecution" : null
         }
@@ -21023,7 +21023,7 @@
           "deletedClaims" : [ "area", "coordinate" ],
           "createdCommonsGeoshape" : true,
           "updatedCommonsGeoshape" : false,
-          "warnings" : [ "No published date to use for point in time. Previous iucn category left untouched." ],
+          "warnings" : [ "No published date to use for point in time. Previous IUCN category left untouched." ],
           "error" : null,
           "previousExecution" : null
         }
@@ -24871,7 +24871,7 @@
           "deletedClaims" : [ "area", "coordinate" ],
           "createdCommonsGeoshape" : false,
           "updatedCommonsGeoshape" : false,
-          "warnings" : [ "No published date to use for point in time. Previous iucn category left untouched." ],
+          "warnings" : [ "No published date to use for point in time. Previous IUCN category left untouched." ],
           "error" : null,
           "previousExecution" : null
         }
@@ -25096,7 +25096,7 @@
       "deletedClaims" : [ "area", "coordinate" ],
       "createdCommonsGeoshape" : false,
       "updatedCommonsGeoshape" : false,
-      "warnings" : [ "No published date to use for point in time. Previous iucn category left untouched." ],
+      "warnings" : [ "No published date to use for point in time. Previous IUCN category left untouched." ],
       "error" : null,
       "previousExecution" : null
     },
