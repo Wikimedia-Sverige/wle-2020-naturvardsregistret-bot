@@ -451,7 +451,16 @@ public class WikiData {
     }
     if (statement.getValue() != null) {
       statementBuilder.withValue(statement.getValue());
+    } else if (statement.getMainSnak() != null) {
+      if (statement.getMainSnak() instanceof NoValueSnak) {
+        statementBuilder.withNoValue();
+      } else if (statement.getMainSnak() instanceof SomeValueSnak) {
+        statementBuilder.withSomeValue();
+      } else {
+        throw new UnsupportedOperationException();
+      }
     }
+
     if (statement.getRank() != null) {
       statementBuilder.withRank(statement.getRank());
     }
