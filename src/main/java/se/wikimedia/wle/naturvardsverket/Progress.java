@@ -1,6 +1,7 @@
 package se.wikimedia.wle.naturvardsverket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import lombok.Data;
 
 import java.util.ArrayList;

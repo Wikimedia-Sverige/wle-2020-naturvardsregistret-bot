@@ -833,6 +833,9 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       return null;
     }
     PropertyIdValue published = wikiData.property("publication date");
+    if (published == null) {
+      return null;
+    }
     for (Reference reference : statement.getReferences()) {
       for (Iterator<Snak> snakIterator = reference.getAllSnaks(); snakIterator.hasNext(); ) {
         Snak snak = snakIterator.next();

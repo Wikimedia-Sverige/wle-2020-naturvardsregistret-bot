@@ -400,7 +400,7 @@ public class WikiData {
       dateTimeFormatter = new DateTimeFormatterBuilder()
           .appendPattern("yyyy")
           .parseDefaulting(ChronoField.MONTH_OF_YEAR, 0)
-          .parseDefaulting(ChronoField.DAY_OF_MONTH, 0)
+          .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
           .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
           .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
           .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
@@ -408,7 +408,7 @@ public class WikiData {
     } else if (timeValue.getPrecision() == TimeValue.PREC_MONTH) {
       dateTimeFormatter = new DateTimeFormatterBuilder()
           .appendPattern("yyyy-M")
-          .parseDefaulting(ChronoField.DAY_OF_MONTH, 0)
+          .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
           .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
           .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
           .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
