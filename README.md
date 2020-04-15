@@ -35,14 +35,12 @@ mwse-bot.email="Contact email address for this bot"
 
 See http://mdp.vic-metria.nu/miljodataportalen/GetMetaDataById?UUID=8df63b07-46e5-45bd-aa06-3f43248617a3 for CC0.
 
-When updating data, make sure to also update download and publish dates in 
-the bot source code!
 
-In the future we might want to consider downloading the original shape files
-from these sources, reproject to EPSG:4326 and convert to GeoJSON. This bot
-could then be executed automatically ever so often.
 
 ### Important notices
+
+* When updating data, make sure to also update download and publish dates in 
+the bot source code!
 
 * Updating multi point coordinate WikiData item claims, e.g. natural monument
 points. Currently not a problem as they currently do not exist in WikiData and
