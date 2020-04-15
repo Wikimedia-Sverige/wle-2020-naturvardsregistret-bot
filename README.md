@@ -33,6 +33,8 @@ mwse-bot.email="Contact email address for this bot"
 * nminn https://metadatakatalogen.naturvardsverket.se/metadatakatalogen/GetMetaDataById?id=c6b02e88-8084-4b3f-8a7d-33e5d45349c4
 * nrese https://metadatakatalogen.naturvardsverket.se/metadatakatalogen/GetMetaDataById?id=2921b01a-0baf-4702-a89f-9c5626c97844
 
+See http://mdp.vic-metria.nu/miljodataportalen/GetMetaDataById?UUID=8df63b07-46e5-45bd-aa06-3f43248617a3 for CC0.
+
 When updating data, make sure to also update download and publish dates in 
 the bot source code!
 
