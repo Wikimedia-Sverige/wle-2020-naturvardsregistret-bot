@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import lombok.Data;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,16 +15,7 @@ public class Progress {
 
   public static void main(String[] args) throws Exception {
     ObjectMapper objectMapper = new ObjectMapper();
-
-    Progress progress = new Progress();
-    Entity entity = new Entity();
-    entity.setNvrid("123");
-    entity.setWikidataIdentity("Q1234");
-    entity.setEpochStarted(System.currentTimeMillis());
-    progress.add(entity);
-
-    String json = objectMapper.writeValueAsString(progress);
-    Progress progress2 = objectMapper.readValue(json, Progress.class);
+    Progress progress = objectMapper.readValue(new File("data/progress/NatureReserveBot.json"), Progress.class);
     System.currentTimeMillis();
 
   }

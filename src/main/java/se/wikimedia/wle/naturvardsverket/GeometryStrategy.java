@@ -258,7 +258,11 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
             log.debug("Current Commons geoshape article is up to date. No need to update.");
           }
         }
+      } else if (existingGeoshape != null){
+        log.debug("Existing Commons geoshape article in WS item with the same name as we would give it");
+        createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
       } else {
+        log.debug("No existing Commons geoshape article in WD item.");
         createOrPossiblyUpdateCommonGeoshapeArticle(commonsGeoshapeObject, commonsGeoshapeObjectJson, commonsGeoshapeArticleName);
         addStatements.add(geoshapeStatementFactory(naturvardsregistretObject, commonsGeoshapeArticleName));
         bot.getProgressEntity().getCreatedClaims().add("geoshape");

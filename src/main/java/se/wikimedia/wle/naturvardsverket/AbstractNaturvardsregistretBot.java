@@ -75,6 +75,10 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
   @Setter
   private boolean doGeometryDeltaEvaluation = true;
 
+  /** It set, then only previously processed will be re-executed whether or not not it succeeded previous execution. */
+  @Setter
+  private Long executePreviouslyExecutedWithSuccessStartedBefore = 1587568256154L;
+
   @Override
   protected void execute() throws Exception {
 
@@ -108,10 +112,18 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
         progress = new Progress();
       }
 
+      boolean debugExit = false;
+
       log.info("Processing entities...");
       for (Feature feature : featureCollection.getFeatures()) {
         // filter out null value properties
         feature.getProperties().entrySet().removeIf(property -> property.getValue() == null);
+
+        String beslutstatus = feature.getProperty("BESLSTATUS");
+        if (!"Gällande".equalsIgnoreCase(beslutstatus)) {
+          log.warn("Status is not active, skipping entry");
+          continue;
+        }
 
         String nvrid = (String) feature.getProperty("NVRID");
         if (nvrid == null) {
@@ -121,10 +133,21 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
         Progress.Entity previousExecution = progress.getProcessed().get(nvrid);
 
-        if (previousExecution != null && previousExecution.getError() == null) {
-          log.info("{} is listed in progress without error. Will be skipped", nvrid);
+        if (previousExecution != null) {
+          if (executePreviouslyExecutedWithSuccessStartedBefore != null && previousExecution.getEpochStarted() < executePreviouslyExecutedWithSuccessStartedBefore) {
+            log.info("{} succeeded last run, but that was way back in the past. Will be processed again.", nvrid);
+          } else if (previousExecution.getError() == null) {
+            log.info("{} is was previously processed without error. Will be skipped", nvrid);
+            continue;
+          } else {
+            log.info("{} was previously processed with errors. Will be processed again.", nvrid);
+          }
         } else {
-          // process
+          log.info("{} was never processed before. Will be processed now.", nvrid);
+        }
+
+        // process
+        {
           try {
             progressEntity = new Progress.Entity();
             progressEntity.setPreviousExecution(previousExecution);
@@ -145,6 +168,9 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
           progressFile.renameTo(progressBackupFile);
           getObjectMapper().writeValue(progressFile, progress); // todo rotate log file, keep a few in case of crash while saving!
           System.currentTimeMillis();
+          if (debugExit) {
+            return;
+          }
         }
       }
     }
@@ -352,6 +378,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       }
 
       if (!isDryRun()) {
+        getWikiData().getDataEditor().setMaxLagMaxRetries(5);
         getWikiData().getDataEditor().updateStatements(naturvardsregistretObject.getWikiDataItem().getEntityId(),
             addStatements,
             deleteStatements,
@@ -558,9 +585,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
               progressEntity.getCreatedClaims().add("operator");
             }
           } else {
-
-            addStatements.add(operatorStatementFactory(naturvardsregistretObject));
-            progressEntity.getCreatedClaims().add("operator");
+            // no change
           }
         }
       }
