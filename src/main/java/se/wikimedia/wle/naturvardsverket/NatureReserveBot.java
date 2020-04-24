@@ -74,7 +74,7 @@ public class NatureReserveBot extends AbstractNaturvardsregistretBot {
         + (isSandbox() ? "Sandbox/KarlWettin-WMSE" : "")
         + "/Sweden/Nature reserves"
         + "/" + object.getPublishedDate().getYear()
-        + "/" + object.getName()
+        + "/" + normalizeArticleNameForCommons(object.getName())
         + "/" + object.getNvrid()
         + ".map";
   }

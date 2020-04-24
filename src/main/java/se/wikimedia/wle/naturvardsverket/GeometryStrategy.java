@@ -58,22 +58,12 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
     try {
       org.locationtech.jts.geom.MultiPoint jtsMultiPoint = (org.locationtech.jts.geom.MultiPoint)new GeoJSONReader().read(bot.getObjectMapper().writeValueAsString(multiPoint));
 
-      StatementGroup statements = naturvardsregistretObject.getWikiDataItem()
-          .findStatementGroup( bot.getWikiData().property("coordinate location"));
-      if (statements != null) {
-        throw new UnsupportedOperationException("Delta on multiple coordinates not implemented");
-        // todo How is this supposed to work?
-        // todo Remove WikiData coordinates not available in local data?
-        // todo Leave WikiData coordinates not available in local data?
-        // todo What does this mean to historic information?
-      }
+      org.locationtech.jts.geom.Point centroid = calculateContainedCentroid(jtsMultiPoint);
 
-      for (Coordinate coordinate : jtsMultiPoint.getCoordinates()) {
-        // allow 1m diff
-        processSingleCoordinateLocation(0.001d, bot.getGeometryFactory().createPoint(coordinate));
-      }
+      // allow 1m diff
+      processSingleCoordinateLocation(0.001d, centroid);
 
-      // todo add a commons article containing all points?
+      // todo add a commons article containing all points? produce a convex hull?
 
       return null;
 

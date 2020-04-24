@@ -72,7 +72,7 @@ public class NationalParkBot extends AbstractNaturvardsregistretBot {
         + (isSandbox() ? "Sandbox/KarlWettin-WMSE" : "")
         + "/Sweden/National parks"
         + "/" + object.getPublishedDate().getYear()
-        + "/" + object.getName()
+        + "/" + normalizeArticleNameForCommons(object.getName())
         + "/" + object.getNvrid()
         + ".map";
   }

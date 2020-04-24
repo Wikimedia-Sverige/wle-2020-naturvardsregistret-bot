@@ -74,7 +74,7 @@ public class NaturalMonumentBot extends AbstractNaturvardsregistretBot {
         + (isSandbox() ? "Sandbox/KarlWettin-WMSE" : "")
         + "/Sweden/Natural monuments"
         + "/" + object.getPublishedDate().getYear()
-        + "/" + object.getName()
+        + "/" + normalizeArticleNameForCommons(object.getName())
         + "/" + object.getNvrid()
         + ".map";
   }

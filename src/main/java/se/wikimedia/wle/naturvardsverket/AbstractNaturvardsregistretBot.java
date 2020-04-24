@@ -378,6 +378,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       }
 
       if (!isDryRun()) {
+        getWikiData().getDataEditor().setMaxLag(10);
         getWikiData().getDataEditor().setMaxLagMaxRetries(1000);
         getWikiData().getDataEditor().setMaxLagFirstWaitTime(6000); // 1000 * 6 seconds = 100 minutes.
         getWikiData().getDataEditor().setMaxLagBackOffFactor(1d);

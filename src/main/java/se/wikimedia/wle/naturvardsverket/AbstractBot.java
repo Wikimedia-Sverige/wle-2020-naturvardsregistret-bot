@@ -115,7 +115,11 @@ public abstract class AbstractBot {
     wikiData.close();
   }
 
-
+  public static String normalizeArticleNameForCommons(String input) {
+    input = input.trim();
+    input = input.replaceAll("\\p{Punct}", "_");
+    return input;
+  }
 
 
 
