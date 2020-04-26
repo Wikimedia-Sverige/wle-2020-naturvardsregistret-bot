@@ -37,7 +37,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
   private DateTimeFormatter featureValueDateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
-  protected abstract boolean hasAreas();
+  protected abstract boolean hasAreas(NaturvardsregistretObject object);
 
   public abstract String commonGeoshapeArticleNameFactory(NaturvardsregistretObject object);
 
@@ -79,7 +79,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
   /** It set, then only previously processed will be re-executed whether or not not it succeeded previous execution. */
   @Setter
-  private Long executePreviouslyExecutedWithSuccessStartedBefore = 1587568256154L;
+  private Long executePreviouslyExecutedWithSuccessStartedBefore = 1587918274951L;
 
   @Override
   protected void execute() throws Exception {
@@ -289,8 +289,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
      ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝    ╚═╝   ╚═╝   ╚══════╝╚═╝     ╚═╝
 */
 
-    log.debug("Find unique WikiData item matching (instance of Naturvårdsregistret object type && Naturvårdsregistret object id).");
-    String sparqlQuery = "SELECT ?item WHERE { ?item wdt:P3613 ?value. ?item wdt:P31 wd:" + getNaturvardsregistretObjectTypeEntityDocument().getEntityId().getId() + ". FILTER (?value IN (\""
+    log.debug("Find unique WikiData item matching (Naturvårdsregistret object id).");
+    String sparqlQuery = "SELECT ?item WHERE { ?item wdt:P3613 ?value. FILTER (?value IN (\""
         + naturvardsregistretObject.getNvrid() + "\")) SERVICE wikibase:label { bd:serviceParam wikibase:language \"[AUTO_LANGUAGE],en\". }} LIMIT 2";
 
     naturvardsregistretObject.setWikiDataObjectKey(wikiData.getSingleObject(sparqlQuery));
@@ -606,84 +606,108 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
 
     // area
-    if (hasAreas()) {
+    if (!hasAreas(naturvardsregistretObject)) {
+      // todo remove this part, it's a bugfix due to bot adding when it shouldn't.
       Statement existingArea = wikiData.findStatementWithoutQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"));
-      TimeValue existingAreaReferencePublishDate = getReferencePublishedDate(existingArea);
-      if (existingAreaReferencePublishDate != null
-          && wikiData.toLocalDateTime(existingAreaReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
-        log.info("Area published date is fresher at Wikidata than in local data. Skipping.");
-        progressEntity.getWarnings().add("Area publication date is fresher at Wikidata.");
-      } else {
-        boolean existingAreaHasDelta = existingArea != null && !existingArea.getValue().equals(areaValueFactory(naturvardsregistretObject));
-        if (existingArea == null || existingAreaHasDelta) {
-          addStatements.add(areaStatementFactory(naturvardsregistretObject));
-          progressEntity.getCreatedClaims().add("area");
-          if (existingAreaHasDelta) {
-            deleteStatements.add(existingArea);
-            progressEntity.getDeletedClaims().add("area");
-          }
-        }
+      if (existingArea != null) {
+        deleteStatements.add(existingArea);
+        progressEntity.getDeletedClaims().add("area");
       }
-    }
-
-    {
       Statement existingLandArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("land"));
-      TimeValue existingAreaLandReferencePublishDate = getReferencePublishedDate(existingLandArea);
-      if (existingAreaLandReferencePublishDate != null
-          && wikiData.toLocalDateTime(existingAreaLandReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
-        log.info("Area land published date is fresher at Wikidata than in local data. Skipping.");
-        progressEntity.getWarnings().add("Area land publication date is fresher at Wikidata.");
-
-      } else {
-        boolean existingLandAreaHasDelta = existingLandArea != null && !existingLandArea.getValue().equals(areaLandValueFactory(naturvardsregistretObject));
-        if (existingLandArea == null || existingLandAreaHasDelta) {
-          addStatements.add(areaLandStatementFactory(naturvardsregistretObject));
-          progressEntity.getCreatedClaims().add("area land");
-          if (existingLandAreaHasDelta) {
-            deleteStatements.add(existingLandArea);
-            progressEntity.getDeletedClaims().add("area land");
-          }
-        }
+      if (existingLandArea != null) {
+        deleteStatements.add(existingLandArea);
+        progressEntity.getDeletedClaims().add("area land");
       }
-    }
-
-    {
       Statement existingForestArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("forest"));
-      TimeValue existingAreaForestReferencePublishDate = getReferencePublishedDate(existingForestArea);
-      if (existingAreaForestReferencePublishDate != null
-          && wikiData.toLocalDateTime(existingAreaForestReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
-        log.info("Area forest published date is fresher at Wikidata than in local data. Skipping.");
-        progressEntity.getWarnings().add("Area forest publication date is fresher at Wikidata.");
-
-      } else {
-        boolean existingForestAreaHasDelta = existingForestArea != null && !existingForestArea.getValue().equals(areaForestValueFactory(naturvardsregistretObject));
-        if (existingForestArea == null || existingForestAreaHasDelta) {
-          addStatements.add(areaForestStatementFactory(naturvardsregistretObject));
-          progressEntity.getCreatedClaims().add("area forest");
-          if (existingForestAreaHasDelta) {
-            deleteStatements.add(existingForestArea);
-            progressEntity.getDeletedClaims().add("area forest");
+      if (existingForestArea != null) {
+        deleteStatements.add(existingForestArea);
+        progressEntity.getDeletedClaims().add("area forest");
+      }
+      Statement existingBodyOfWaterArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("body of water"));
+      if (existingBodyOfWaterArea != null) {
+        deleteStatements.add(existingBodyOfWaterArea);
+        progressEntity.getDeletedClaims().add("area water");
+      }
+    } else {
+      {
+        Statement existingArea = wikiData.findStatementWithoutQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"));
+        TimeValue existingAreaReferencePublishDate = getReferencePublishedDate(existingArea);
+        if (existingAreaReferencePublishDate != null
+            && wikiData.toLocalDateTime(existingAreaReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+          log.info("Area published date is fresher at Wikidata than in local data. Skipping.");
+          progressEntity.getWarnings().add("Area publication date is fresher at Wikidata.");
+        } else {
+          boolean existingAreaHasDelta = existingArea != null && !existingArea.getValue().equals(areaValueFactory(naturvardsregistretObject));
+          if (existingArea == null || existingAreaHasDelta) {
+            addStatements.add(areaStatementFactory(naturvardsregistretObject));
+            progressEntity.getCreatedClaims().add("area");
+            if (existingAreaHasDelta) {
+              deleteStatements.add(existingArea);
+              progressEntity.getDeletedClaims().add("area");
+            }
           }
         }
       }
-    }
 
-    {
-      Statement existingBodyOfWaterArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("body of water"));
-      TimeValue existingAreaBodyOfWaterReferencePublishDate = getReferencePublishedDate(existingBodyOfWaterArea);
-      if (existingAreaBodyOfWaterReferencePublishDate != null
-          && wikiData.toLocalDateTime(existingAreaBodyOfWaterReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
-        log.info("Area body of water published date is fresher at Wikidata than in local data. Skipping.");
-        progressEntity.getWarnings().add("Area body of water publication date is fresher at Wikidata.");
+      {
+        Statement existingLandArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("land"));
+        TimeValue existingAreaLandReferencePublishDate = getReferencePublishedDate(existingLandArea);
+        if (existingAreaLandReferencePublishDate != null
+            && wikiData.toLocalDateTime(existingAreaLandReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+          log.info("Area land published date is fresher at Wikidata than in local data. Skipping.");
+          progressEntity.getWarnings().add("Area land publication date is fresher at Wikidata.");
 
-      } else {
-        boolean exitingBodyOfWaterAreaHasDelta = existingBodyOfWaterArea != null && !existingBodyOfWaterArea.getValue().equals(areaBodyOfWaterValueFactory(naturvardsregistretObject));
-        if (existingBodyOfWaterArea == null || exitingBodyOfWaterAreaHasDelta) {
-          addStatements.add(areaBodyOfWaterStatementFactory(naturvardsregistretObject));
-          progressEntity.getCreatedClaims().add("area water");
-          if (exitingBodyOfWaterAreaHasDelta) {
-            deleteStatements.add(existingBodyOfWaterArea);
-            progressEntity.getDeletedClaims().add("area water");
+        } else {
+          boolean existingLandAreaHasDelta = existingLandArea != null && !existingLandArea.getValue().equals(areaLandValueFactory(naturvardsregistretObject));
+          if (existingLandArea == null || existingLandAreaHasDelta) {
+            addStatements.add(areaLandStatementFactory(naturvardsregistretObject));
+            progressEntity.getCreatedClaims().add("area land");
+            if (existingLandAreaHasDelta) {
+              deleteStatements.add(existingLandArea);
+              progressEntity.getDeletedClaims().add("area land");
+            }
+          }
+        }
+      }
+
+      {
+        Statement existingForestArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("forest"));
+        TimeValue existingAreaForestReferencePublishDate = getReferencePublishedDate(existingForestArea);
+        if (existingAreaForestReferencePublishDate != null
+            && wikiData.toLocalDateTime(existingAreaForestReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+          log.info("Area forest published date is fresher at Wikidata than in local data. Skipping.");
+          progressEntity.getWarnings().add("Area forest publication date is fresher at Wikidata.");
+
+        } else {
+          boolean existingForestAreaHasDelta = existingForestArea != null && !existingForestArea.getValue().equals(areaForestValueFactory(naturvardsregistretObject));
+          if (existingForestArea == null || existingForestAreaHasDelta) {
+            addStatements.add(areaForestStatementFactory(naturvardsregistretObject));
+            progressEntity.getCreatedClaims().add("area forest");
+            if (existingForestAreaHasDelta) {
+              deleteStatements.add(existingForestArea);
+              progressEntity.getDeletedClaims().add("area forest");
+            }
+          }
+        }
+      }
+
+      {
+        Statement existingBodyOfWaterArea = wikiData.findStatementByUniqueQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"), getWikiData().property("applies to part"), getWikiData().entity("body of water"));
+        TimeValue existingAreaBodyOfWaterReferencePublishDate = getReferencePublishedDate(existingBodyOfWaterArea);
+        if (existingAreaBodyOfWaterReferencePublishDate != null
+            && wikiData.toLocalDateTime(existingAreaBodyOfWaterReferencePublishDate).isAfter(naturvardsregistretObject.getPublishedDate().atTime(0, 0))) {
+          log.info("Area body of water published date is fresher at Wikidata than in local data. Skipping.");
+          progressEntity.getWarnings().add("Area body of water publication date is fresher at Wikidata.");
+
+        } else {
+          boolean exitingBodyOfWaterAreaHasDelta = existingBodyOfWaterArea != null && !existingBodyOfWaterArea.getValue().equals(areaBodyOfWaterValueFactory(naturvardsregistretObject));
+          if (existingBodyOfWaterArea == null || exitingBodyOfWaterAreaHasDelta) {
+            addStatements.add(areaBodyOfWaterStatementFactory(naturvardsregistretObject));
+            progressEntity.getCreatedClaims().add("area water");
+            if (exitingBodyOfWaterAreaHasDelta) {
+              deleteStatements.add(existingBodyOfWaterArea);
+              progressEntity.getDeletedClaims().add("area water");
+            }
           }
         }
       }

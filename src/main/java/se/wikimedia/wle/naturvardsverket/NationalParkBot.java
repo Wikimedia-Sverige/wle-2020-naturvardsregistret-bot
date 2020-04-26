@@ -30,7 +30,7 @@ public class NationalParkBot extends AbstractNaturvardsregistretBot {
   }
 
   @Override
-  protected boolean hasAreas() {
+  protected boolean hasAreas(NaturvardsregistretObject object) {
     return true;
   }
 

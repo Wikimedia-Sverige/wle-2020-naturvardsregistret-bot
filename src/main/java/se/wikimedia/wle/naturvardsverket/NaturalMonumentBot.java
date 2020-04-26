@@ -1,5 +1,6 @@
 package se.wikimedia.wle.naturvardsverket;
 
+import org.geojson.*;
 import org.wikidata.wdtk.datamodel.interfaces.EntityIdValue;
 
 import java.io.File;
@@ -25,8 +26,53 @@ public class NaturalMonumentBot extends AbstractNaturvardsregistretBot {
   ));
 
   @Override
-  protected boolean hasAreas() {
-    return false;
+  protected boolean hasAreas(NaturvardsregistretObject object) {
+    return object.getFeature().getGeometry().accept(new GeoJsonObjectVisitor<Boolean>() {
+      @Override
+      public Boolean visit(GeometryCollection geometryCollection) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(FeatureCollection featureCollection) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Point point) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Feature feature) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(MultiLineString multiLineString) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(Polygon polygon) {
+        return true;
+      }
+
+      @Override
+      public Boolean visit(MultiPolygon multiPolygon) {
+        return true;
+      }
+
+      @Override
+      public Boolean visit(MultiPoint multiPoint) {
+        return false;
+      }
+
+      @Override
+      public Boolean visit(LineString lineString) {
+        return false;
+      }
+    });
   }
 
   @Override
