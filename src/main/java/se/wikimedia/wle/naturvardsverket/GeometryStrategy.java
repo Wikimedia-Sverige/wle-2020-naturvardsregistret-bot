@@ -64,6 +64,8 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
       processSingleCoordinateLocation(0.001d, centroid);
 
       // todo add a commons article containing all points? produce a convex hull?
+      createOrPossiblyUpdateCommonGeoshapeArticle(naturvardsregistretObject, jtsMultiPoint, centroid);
+
 
       return null;
 
@@ -356,26 +358,31 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
 
   private int evaluateZoom(Geometry geometry) {
     int zoom;
-    org.locationtech.jts.geom.Polygon envelope = (org.locationtech.jts.geom.Polygon) geometry.getEnvelope();
-    double kmDiagonal = ArcDistance.arcDistance(envelope.getCoordinates()[0].y, envelope.getCoordinates()[0].x, envelope.getCoordinates()[2].y, envelope.getCoordinates()[2].x);
-
-    // so this is some crappy hard coded stuff
-    if (kmDiagonal < 1) {
-      zoom = 13;
-    } else if (kmDiagonal < 4) {
-      zoom = 12;
-    } else if (kmDiagonal < 16) {
-      zoom = 11;
-    } else if (kmDiagonal < 64) {
-      zoom = 10;
-    } else if (kmDiagonal < 256) {
-      zoom = 9;
-    } else if (kmDiagonal < 1024) {
-      zoom = 8;
+    org.locationtech.jts.geom.Geometry envelopeGeometry = geometry.getEnvelope();
+    if (envelopeGeometry instanceof org.locationtech.jts.geom.Polygon) {
+      org.locationtech.jts.geom.Polygon envelope = (org.locationtech.jts.geom.Polygon) envelopeGeometry;
+      double kmDiagonal = ArcDistance.arcDistance(envelope.getCoordinates()[0].y, envelope.getCoordinates()[0].x, envelope.getCoordinates()[2].y, envelope.getCoordinates()[2].x);
+      // so this is some crappy hard coded stuff
+      if (kmDiagonal < 1) {
+        zoom = 13;
+      } else if (kmDiagonal < 4) {
+        zoom = 12;
+      } else if (kmDiagonal < 16) {
+        zoom = 11;
+      } else if (kmDiagonal < 64) {
+        zoom = 10;
+      } else if (kmDiagonal < 256) {
+        zoom = 9;
+      } else if (kmDiagonal < 1024) {
+        zoom = 8;
+      } else {
+        zoom = 7;
+        log.warn("Developer error: Too large area to come up with a good zoom value");
+      }
     } else {
-      zoom = 7;
-      log.warn("Developer error: Too large area to come up with a good zoom value");
+      zoom = 13;
     }
+
     return zoom;
   }
 

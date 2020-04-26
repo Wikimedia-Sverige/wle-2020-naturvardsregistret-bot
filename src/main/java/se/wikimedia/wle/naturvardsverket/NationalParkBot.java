@@ -30,6 +30,11 @@ public class NationalParkBot extends AbstractNaturvardsregistretBot {
   }
 
   @Override
+  protected boolean hasAreas() {
+    return true;
+  }
+
+  @Override
   protected String getDescription(NaturvardsregistretObject object, String language) {
     String lan = (String)object.getFeature().getProperties().get("LAN");
     lan = lan.replaceFirst("Län", "län");

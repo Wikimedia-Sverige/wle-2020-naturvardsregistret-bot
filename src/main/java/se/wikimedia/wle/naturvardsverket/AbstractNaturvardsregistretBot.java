@@ -37,6 +37,8 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
   private DateTimeFormatter featureValueDateFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
+  protected abstract boolean hasAreas();
+
   public abstract String commonGeoshapeArticleNameFactory(NaturvardsregistretObject object);
 
   /**
@@ -314,6 +316,10 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
       }
 
       if (!isDryRun()) {
+        getWikiData().getDataEditor().setMaxLag(10);
+        getWikiData().getDataEditor().setMaxLagMaxRetries(1000);
+        getWikiData().getDataEditor().setMaxLagFirstWaitTime(6000); // 1000 * 6 seconds = 100 minutes.
+        getWikiData().getDataEditor().setMaxLagBackOffFactor(1d);
         naturvardsregistretObject.setWikiDataItem(getWikiData().getDataEditor().createItemDocument(
             builder.build(),
             "Created by bot from data supplied by Naturvårdsverket",
@@ -600,7 +606,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
 
     // area
-    {
+    if (hasAreas()) {
       Statement existingArea = wikiData.findStatementWithoutQualifier(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("area"));
       TimeValue existingAreaReferencePublishDate = getReferencePublishedDate(existingArea);
       if (existingAreaReferencePublishDate != null

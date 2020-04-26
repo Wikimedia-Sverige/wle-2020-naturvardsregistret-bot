@@ -25,6 +25,11 @@ public class NaturalMonumentBot extends AbstractNaturvardsregistretBot {
   ));
 
   @Override
+  protected boolean hasAreas() {
+    return false;
+  }
+
+  @Override
   protected Collection<String> getSupportedDescriptionLanguages() {
     return supportedDescriptionLanguages;
   }
@@ -34,9 +39,9 @@ public class NaturalMonumentBot extends AbstractNaturvardsregistretBot {
     String lan = (String)object.getFeature().getProperties().get("LAN");
     lan = lan.replaceFirst("Län", "län");
     if ("sv".equals(language)) {
-      return "naturminne i " + lan;
+      return "naturminne med NVRID "+object.getNvrid()+" i " + lan;
     } else if ("en".equals(language)) {
-      return "natural monument in " + lan + ", Sweden";
+      return "natural monument with NVRID " + object.getNvrid()+ " in " + lan + ", Sweden";
     } else {
       throw new IllegalArgumentException("Unsupported language: " + language);
     }
@@ -58,7 +63,7 @@ public class NaturalMonumentBot extends AbstractNaturvardsregistretBot {
   @Override
   protected File[] getNaturvardsregistretGeoJsonFiles() {
     return new File[]{
-        new File("data/4326/naturminne_polygon.geojson"),
+//        new File("data/4326/naturminne_polygon.geojson"),
         new File("data/4326/naturminne_punkt.geojson"),
     };
   }

@@ -52,6 +52,11 @@ public class NatureReserveBot extends AbstractNaturvardsregistretBot {
   ));
 
   @Override
+  protected boolean hasAreas() {
+    return true;
+  }
+
+  @Override
   protected Collection<String> getSupportedDescriptionLanguages() {
     return supportedDescriptionLanguages;
   }
