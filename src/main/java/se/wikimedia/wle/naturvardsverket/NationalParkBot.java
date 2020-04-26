@@ -31,10 +31,12 @@ public class NationalParkBot extends AbstractNaturvardsregistretBot {
 
   @Override
   protected String getDescription(NaturvardsregistretObject object, String language) {
+    String lan = (String)object.getFeature().getProperties().get("LAN");
+    lan = lan.replaceFirst("Län", "län");
     if ("sv".equals(language)) {
-      return "nationalpark i " + (String)object.getFeature().getProperties().get("LAN");
+      return "nationalpark i " + lan;
     } else if ("en".equals(language)) {
-      return "national park in " + (String)object.getFeature().getProperties().get("LAN") + ", Sweden";
+      return "national park in " + lan + ", Sweden";
     } else {
       throw new IllegalArgumentException("Unsupported language: " + language);
     }

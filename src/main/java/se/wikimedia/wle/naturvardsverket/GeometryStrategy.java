@@ -381,7 +381,7 @@ public class GeometryStrategy implements GeoJsonObjectVisitor<Void> {
 
   private org.locationtech.jts.geom.Point calculateContainedCentroid(Geometry geometry) {
     org.locationtech.jts.geom.Point centroid = geometry.getCentroid();
-    if (!geometry.contains(centroid) && !geometry.intersects(centroid)) {
+    if (!geometry.intersects(centroid)) {
       // find closest vertex
       double closestDistance = Double.MAX_VALUE;
       org.locationtech.jts.geom.Point closestPoint = centroid;

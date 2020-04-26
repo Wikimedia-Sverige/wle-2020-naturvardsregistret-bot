@@ -58,10 +58,12 @@ public class NatureReserveBot extends AbstractNaturvardsregistretBot {
 
   @Override
   protected String getDescription(NaturvardsregistretObject object, String language) {
+    String lan = (String)object.getFeature().getProperties().get("LAN");
+    lan = lan.replaceFirst("Län", "län");
     if ("sv".equals(language)) {
-      return "naturreservat i " + (String)object.getFeature().getProperties().get("LAN");
+      return "naturreservat i " + lan;
     } else if ("en".equals(language)) {
-      return "nature reserve in " + (String)object.getFeature().getProperties().get("LAN") + ", Sweden";
+      return "nature reserve in " + lan + ", Sweden";
     } else {
       throw new IllegalArgumentException("Unsupported language: " + language);
     }
