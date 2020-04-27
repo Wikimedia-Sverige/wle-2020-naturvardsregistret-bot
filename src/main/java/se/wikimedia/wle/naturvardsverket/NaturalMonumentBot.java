@@ -109,13 +109,13 @@ public class NaturalMonumentBot extends AbstractNaturvardsregistretBot {
   @Override
   protected File[] getNaturvardsregistretGeoJsonFiles() {
     return new File[]{
-//        new File("data/4326/naturminne_polygon.geojson"),
+        new File("data/4326/naturminne_polygon.geojson"),
         new File("data/4326/naturminne_punkt.geojson"),
     };
   }
 
   /**
-   * @return Q-nature reserve
+   * @return Q-natural monument
    */
   protected String getNaturvardsregistretObjectTypeEntityId() {
     return "Q23790";

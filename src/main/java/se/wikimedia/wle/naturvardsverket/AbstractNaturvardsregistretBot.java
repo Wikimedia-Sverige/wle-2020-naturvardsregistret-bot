@@ -79,7 +79,7 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
 
   /** It set, then only previously processed will be re-executed whether or not not it succeeded previous execution. */
   @Setter
-  private Long executePreviouslyExecutedWithSuccessStartedBefore = 1587918274951L;
+  private Long executePreviouslyExecutedWithSuccessStartedBefore = null; // System.currentTimeMillis();
 
   @Override
   protected void execute() throws Exception {
@@ -408,6 +408,26 @@ public abstract class AbstractNaturvardsregistretBot extends AbstractBot {
   ) throws Exception {
 
     // todo labels and descriptions?
+
+    // instance of
+    if (false){
+      // todo this needs work, can be multiple instance of, i.e. not only most recent
+      Statement existingInstanceOf = wikiData.findMostRecentPublishedStatement(naturvardsregistretObject.getWikiDataItem(), getWikiData().property("instance of"));
+      if (existingInstanceOf == null
+          || (!existingInstanceOf.getValue().equals(getWikiData().getEntityIdValue(getNaturvardsregistretObjectTypeEntityId())))) {
+        if (existingInstanceOf != null) {
+          deleteStatements.add(existingInstanceOf);
+          progressEntity.getDeletedClaims().add("instance of");
+        }
+
+        addStatements.add(addNaturvardsregistretReferences(naturvardsregistretObject, StatementBuilder
+            .forSubjectAndProperty(ItemIdValue.NULL, getWikiData().property("instance of"))
+            .withValue(wikiData.getEntityIdValue(getNaturvardsregistretObjectTypeEntityId()))
+        ).build());
+
+        progressEntity.getCreatedClaims().add("instance of");
+      }
+    }
 
     // inception date
     {
